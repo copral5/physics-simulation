@@ -1,0 +1,247 @@
+class Ball{
+
+
+constructor(){
+
+
+this.x=CENTER.x;
+this.y=CENTER.y;
+
+
+let a=Math.random()*Math.PI*2;
+
+
+let speed=4;
+
+
+this.vx=Math.cos(a)*speed;
+this.vy=Math.sin(a)*speed;
+
+
+this.r=8;
+
+
+// remember layers already passed
+this.passedLayers = new Set();
+
+
+}
+
+
+
+
+update(){
+
+
+this.vy+=0.15;
+
+
+this.x+=this.vx;
+this.y+=this.vy;
+
+
+this.vx*=0.999;
+this.vy*=0.999;
+
+
+this.collision();
+
+
+}
+
+
+
+
+collision(){
+
+
+
+let dx=this.x-CENTER.x;
+let dy=this.y-CENTER.y;
+
+
+let dist=Math.sqrt(dx*dx+dy*dy);
+
+
+
+
+for(let index=0; index<layers.length; index++){
+
+
+
+let layer = layers[index];
+
+
+// already escaped this layer
+if(this.passedLayers.has(index))
+continue;
+
+
+
+
+if(
+dist >
+layer.radius-this.r &&
+dist <
+layer.radius+this.r
+){
+
+
+
+let angle=
+(
+Math.atan2(dy,dx)
+-layer.angle+
+Math.PI*2
+)
+%(Math.PI*2);
+
+
+
+
+let hole=false;
+
+
+
+
+for(let i=0;i<layer.holes;i++){
+
+
+let h=
+i*Math.PI*2/layer.holes;
+
+
+let diff=Math.abs(angle-h);
+
+
+diff=Math.min(
+diff,
+Math.PI*2-diff
+);
+
+
+
+if(diff < HOLE_SIZE/2){
+
+
+hole=true;
+
+break;
+
+
+}
+
+
+}
+
+
+
+
+
+if(hole){
+
+
+// allow escape
+this.passedLayers.add(index);
+
+
+
+}
+
+else{
+
+
+
+// bounce backwards
+
+
+let nx=dx/dist;
+let ny=dy/dist;
+
+
+
+this.x=
+CENTER.x+
+nx*(layer.radius-this.r);
+
+
+
+this.y=
+CENTER.y+
+ny*(layer.radius-this.r);
+
+
+
+let dot=
+this.vx*nx+
+this.vy*ny;
+
+
+
+this.vx-=2*dot*nx;
+this.vy-=2*dot*ny;
+
+
+
+this.vx*=0.8;
+this.vy*=0.8;
+
+
+
+playHit();
+
+
+
+}
+
+
+
+}
+
+
+
+}
+
+
+
+}
+
+
+
+
+
+
+draw(){
+
+
+ctx.beginPath();
+
+
+ctx.arc(
+this.x,
+this.y,
+this.r,
+0,
+Math.PI*2
+);
+
+
+
+ctx.fillStyle="#00ffff";
+
+
+ctx.shadowColor="#00ffff";
+ctx.shadowBlur=20;
+
+
+ctx.fill();
+
+
+ctx.shadowBlur=0;
+
+
+}
+
+
+
+}
