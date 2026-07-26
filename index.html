@@ -1,0 +1,4857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arcade // Physics Toys</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070c;
+  --bg2:#0d0d16;
+  --card:#111119;
+  --text:#eef1fb;
+  --muted:#8890a8;
+  --line:#1e1e2c;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:'JetBrains Mono',monospace;overflow:hidden;}
+.hidden{display:none !important;}
+
+#homeScreen{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:28px 20px 60px;}
+header h1{font-family:'Orbitron',sans-serif;font-size:22px;letter-spacing:2px;margin:0 0 6px;
+  background:linear-gradient(90deg,#38f2ff,#b57bff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+header p{color:var(--muted);margin:0 0 26px;font-size:13px;line-height:1.5;max-width:560px;}
+
+.grid{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:640px){.grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:980px){.grid{grid-template-columns:1fr 1fr 1fr;}}
+@media(min-width:1320px){.grid{grid-template-columns:1fr 1fr 1fr 1fr;}}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:0;
+  text-align:left;
+  color:var(--text);
+  cursor:pointer;
+  overflow:hidden;
+  transition:border-color .2s ease, transform .2s ease;
+  font-family:inherit;
+}
+.card:hover, .card:focus-visible{
+  border-color:var(--accent);
+  transform:translateY(-2px);
+  outline:none;
+}
+.card canvas{display:block;width:100%;height:130px;background:#050508;}
+.card-body{padding:13px 15px 16px;}
+.card-body h2{margin:0 0 6px;font-size:15px;font-family:'Orbitron',sans-serif;color:var(--accent);letter-spacing:.5px;}
+.card-body p{margin:0;font-size:12px;color:var(--muted);line-height:1.5;}
+
+#simScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;}
+.topbar{
+  height:56px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;border-bottom:1px solid var(--line);background:var(--bg2);
+  position:relative;z-index:2;
+}
+.topbar button{
+  background:none;border:1px solid var(--line);color:var(--text);
+  width:38px;height:38px;border-radius:6px;font-size:16px;cursor:pointer;
+  flex-shrink:0;
+}
+.topbar button:active{border-color:#38f2ff;}
+.topbar button:disabled{opacity:.35;cursor:not-allowed;}
+.simtitle{font-family:'Orbitron',sans-serif;font-size:12.5px;letter-spacing:1px;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;}
+.topbar-right{display:flex;gap:8px;}
+#recordBtn.recording{border-color:#ff3b5c;color:#ff3b5c;}
+
+#canvasWrap{
+  flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+  background:#000;overflow:hidden;min-height:0;
+}
+#mainCanvas{display:block;background:#07070c;}
+
+#recordIndicator{
+  position:absolute;top:64px;left:50%;transform:translateX(-50%);
+  background:rgba(20,4,8,0.9);color:#ff5c72;border:1px solid #ff3b5c;
+  padding:4px 12px;border-radius:20px;font-size:12px;letter-spacing:1px;
+  z-index:4;animation:recPulse 1.2s infinite;
+}
+@keyframes recPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+
+select{
+  background:var(--card);color:var(--text);border:1px solid var(--line);
+  border-radius:6px;padding:9px 8px;font-family:inherit;font-size:12.5px;
+  width:100%;
+}
+.res-info{font-size:11px;color:var(--muted);margin-top:2px;}
+
+#controlsPanel{
+  position:absolute;left:0;right:0;bottom:0;
+  background:rgba(13,13,22,0.97);
+  border-top:1px solid var(--line);
+  padding:16px 18px 22px;
+  display:flex;flex-direction:column;gap:14px;
+  z-index:3;
+}
+#controlsPanel label{display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
+#controlsPanel input[type=range]{width:100%;accent-color:#38f2ff;}
+.row-value{color:var(--text);font-size:12px;text-transform:none;letter-spacing:0;}
+.music-controls{display:flex;gap:10px;}
+.music-controls button{
+  flex:1;background:var(--card);border:1px solid var(--line);color:var(--text);
+  padding:10px;border-radius:6px;font-family:inherit;font-size:12.5px;cursor:pointer;
+}
+.music-controls button:active{border-color:#38f2ff;}
+.music-name{font-size:11px;color:var(--muted);}
+.rec-tip{font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);padding-top:12px;}
+</style>
+</head>
+<body>
+
+<div id="homeScreen">
+  <header>
+    <h1>ARCADE // PHYSICS TOYS</h1>
+    <p>Forty-one satisfying little machines. Pick one, tune the speed, drop in your own soundtrack, and record it as a video with sound.</p>
+  </header>
+  <div class="grid" id="conceptGrid"></div>
+</div>
+
+<div id="simScreen" class="hidden">
+  <div class="topbar">
+    <button id="backBtn" aria-label="Back">&larr;</button>
+    <div class="simtitle" id="simTitle"></div>
+    <div class="topbar-right">
+      <button id="recordBtn" aria-label="Record">&#9210;</button>
+      <button id="controlsBtn" aria-label="Controls">&#9881;</button>
+    </div>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+  <div id="recordIndicator" class="hidden">● REC 00:00</div>
+
+  <div id="controlsPanel" class="hidden">
+    <label>Aspect ratio
+      <select id="aspectSelect">
+        <option value="fill">Fill screen</option>
+        <option value="9:16" selected>9:16 — Reels / TikTok / Shorts</option>
+        <option value="4:5">4:5 — Instagram portrait</option>
+        <option value="1:1">1:1 — Square post</option>
+        <option value="16:9">16:9 — YouTube / landscape</option>
+        <option value="3:4">3:4 — Portrait</option>
+      </select>
+    </label>
+    <label>Recording quality
+      <select id="qualitySelect">
+        <option value="480">480p — small file</option>
+        <option value="720">720p — recommended</option>
+        <option value="1080" selected>1080p — high quality</option>
+      </select>
+      <span class="res-info" id="resolutionInfo"></span>
+    </label>
+    <label>Collision sound
+      <select id="soundPresetSelect">
+        <option value="chime">Arcade Chime</option>
+        <option value="glass">Glass Ping</option>
+        <option value="wood">Wood Knock</option>
+        <option value="retro">Retro Blip</option>
+        <option value="bell">Bell</option>
+        <option value="bass">Bass Thud</option>
+      </select>
+    </label>
+    <div class="music-controls">
+      <button id="uploadHitSoundBtn">Upload hit sound</button>
+      <button id="clearHitSoundBtn">Clear custom</button>
+    </div>
+    <div class="music-name" id="hitSoundName">Using built-in: Arcade Chime</div>
+    <input type="file" id="hitSoundFile" accept="audio/*" class="hidden">
+
+    <label>Speed <span class="row-value" id="speedVal">1.00x</span>
+      <input type="range" id="speedSlider" min="0.25" max="3" step="0.05" value="1">
+    </label>
+    <label>Collision volume
+      <input type="range" id="sfxSlider" min="0" max="100" value="60">
+    </label>
+    <label>Music volume
+      <input type="range" id="musicSlider" min="0" max="100" value="50">
+    </label>
+    <div class="music-controls">
+      <button id="uploadMusicBtn">Upload music</button>
+      <button id="playPauseBtn">Play</button>
+    </div>
+    <div class="music-name" id="musicName">No track loaded</div>
+    <div class="rec-tip">Tip: the ⏺ button up top records exactly the frame you see here — at your chosen aspect ratio and quality — with collision sounds and music mixed in, and saves it as MP4 (or WebM if your browser can't do MP4).</div>
+    <input type="file" id="musicFile" accept="audio/*" class="hidden">
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const TAU = Math.PI * 2;
+function rand(a, b){ return a + Math.random() * (b - a); }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function lerp(a, b, t){ return a + (b - a) * t; }
+function hslToRgb(h, s, l){
+  let r, g, b;
+  if(s === 0){ r = g = b = l; }
+  else{
+    const hue2rgb = (p, q, t) => {
+      if(t < 0) t += 1;
+      if(t > 1) t -= 1;
+      if(t < 1 / 6) return p + (q - p) * 6 * t;
+      if(t < 1 / 2) return q;
+      if(t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+/* ---------------- audio engine ---------------- */
+
+class AudioEngine {
+  constructor(){
+    this.ctx = null;
+    this.sfxGain = null;
+    this.musicGain = null;
+    this.recordDest = null;
+    this.musicEl = null;
+    this.musicSource = null;
+    this.analyser = null;
+    this.freqData = null;
+    this.noteIndex = 0;
+    this.lastPlay = 0;
+    this.scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+    this.hitPreset = "chime";
+    this.customBuffer = null;
+    this.noiseBuffer = null;
+  }
+  ensureCtx(){
+    if(!this.ctx){
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.6;
+      this.sfxGain.connect(this.ctx.destination);
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.5;
+      this.musicGain.connect(this.ctx.destination);
+      this.recordDest = this.ctx.createMediaStreamDestination();
+      this.sfxGain.connect(this.recordDest);
+      this.musicGain.connect(this.recordDest);
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 256;
+      this.analyser.smoothingTimeConstant = 0.8;
+      this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
+
+      const noiseLen = this.ctx.sampleRate * 0.3;
+      this.noiseBuffer = this.ctx.createBuffer(1, noiseLen, this.ctx.sampleRate);
+      const data = this.noiseBuffer.getChannelData(0);
+      for(let i = 0; i < noiseLen; i++) data[i] = Math.random() * 2 - 1;
+    }
+    if(this.ctx.state === "suspended") this.ctx.resume();
+  }
+  getFrequencyData(){
+    if(!this.analyser) return null;
+    this.analyser.getByteFrequencyData(this.freqData);
+    return this.freqData;
+  }
+  hasMusic(){ return !!(this.musicEl && !this.musicEl.paused); }
+  nextFreq(intensity, colorSeed){
+    const freq = this.scale[(this.noteIndex + colorSeed) % this.scale.length] * (0.6 + Math.min(intensity, 1.6) * 0.5);
+    this.noteIndex++;
+    return freq;
+  }
+  playHit(intensity, colorSeed){
+    if(intensity === undefined) intensity = 1;
+    if(colorSeed === undefined) colorSeed = 0;
+    this.ensureCtx();
+    const now = this.ctx.currentTime;
+    if(now - this.lastPlay < 0.025) return;
+    this.lastPlay = now;
+
+    switch(this.hitPreset){
+      case "glass": this._playGlass(now, intensity, colorSeed); break;
+      case "wood": this._playWood(now, intensity, colorSeed); break;
+      case "retro": this._playRetro(now, intensity, colorSeed); break;
+      case "bell": this._playBell(now, intensity, colorSeed); break;
+      case "bass": this._playBass(now, intensity, colorSeed); break;
+      case "custom": this._playCustom(now, intensity); break;
+      default: this._playChime(now, intensity, colorSeed);
+    }
+  }
+  _playChime(now, intensity, colorSeed){
+    const freq = this.nextFreq(intensity, colorSeed);
+    const peak = clamp(0.12 + intensity * 0.18, 0.08, 0.55);
+
+    const osc = this.ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(peak, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 3800;
+    osc.connect(filter); filter.connect(gain); gain.connect(this.sfxGain);
+    osc.start(now); osc.stop(now + 0.4);
+
+    const click = this.ctx.createOscillator();
+    click.type = "triangle";
+    click.frequency.value = freq * 2.01;
+    const clickGain = this.ctx.createGain();
+    clickGain.gain.setValueAtTime(0, now);
+    clickGain.gain.linearRampToValueAtTime(peak * 0.4, now + 0.002);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    click.connect(clickGain); clickGain.connect(this.sfxGain);
+    click.start(now); click.stop(now + 0.08);
+  }
+  _playGlass(now, intensity, colorSeed){
+    const freq = this.nextFreq(intensity, colorSeed) * 1.8;
+    const peak = clamp(0.1 + intensity * 0.15, 0.06, 0.4);
+
+    const osc = this.ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(peak, now + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc.connect(gain); gain.connect(this.sfxGain);
+    osc.start(now); osc.stop(now + 0.18);
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.noiseBuffer;
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = "highpass"; noiseFilter.frequency.value = 6000;
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(peak * 0.5, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(this.sfxGain);
+    noise.start(now); noise.stop(now + 0.06);
+  }
+  _playWood(now, intensity, colorSeed){
+    const peak = clamp(0.15 + intensity * 0.2, 0.1, 0.6);
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 250 + colorSeed * 60 + intensity * 200;
+    filter.Q.value = 2.2;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(peak, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    noise.connect(filter); filter.connect(gain); gain.connect(this.sfxGain);
+    noise.start(now); noise.stop(now + 0.1);
+
+    const thump = this.ctx.createOscillator();
+    thump.type = "sine";
+    thump.frequency.value = 110;
+    const thumpGain = this.ctx.createGain();
+    thumpGain.gain.setValueAtTime(peak * 0.5, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    thump.connect(thumpGain); thumpGain.connect(this.sfxGain);
+    thump.start(now); thump.stop(now + 0.08);
+  }
+  _playRetro(now, intensity, colorSeed){
+    const freq = this.nextFreq(intensity, colorSeed) * 0.9;
+    const peak = clamp(0.1 + intensity * 0.15, 0.07, 0.4);
+    const osc = this.ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(60, freq * 0.6), now + 0.12);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(peak, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc.connect(gain); gain.connect(this.sfxGain);
+    osc.start(now); osc.stop(now + 0.15);
+  }
+  _playBell(now, intensity, colorSeed){
+    const freq = this.nextFreq(intensity, colorSeed);
+    const peak = clamp(0.1 + intensity * 0.14, 0.07, 0.4);
+
+    [1, 1.006, 2.4].forEach((mult, i) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq * mult;
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(peak / (i + 1), now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      osc.connect(gain); gain.connect(this.sfxGain);
+      osc.start(now); osc.stop(now + 0.9);
+    });
+  }
+  _playBass(now, intensity, colorSeed){
+    const peak = clamp(0.18 + intensity * 0.22, 0.12, 0.65);
+    const osc = this.ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(180 + colorSeed * 8, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.16);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(peak, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain); gain.connect(this.sfxGain);
+    osc.start(now); osc.stop(now + 0.24);
+  }
+  _playCustom(now, intensity){
+    if(!this.customBuffer){ this._playChime(now, intensity, 0); return; }
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.customBuffer;
+    source.playbackRate.value = clamp(0.85 + intensity * 0.25, 0.7, 1.6);
+    const gain = this.ctx.createGain();
+    gain.gain.value = clamp(0.35 + intensity * 0.35, 0.25, 0.9);
+    source.connect(gain); gain.connect(this.sfxGain);
+    const dur = Math.min(this.customBuffer.duration, 1.2);
+    source.start(now, 0, dur);
+  }
+  loadCustomHitSound(file){
+    this.ensureCtx();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.ctx.decodeAudioData(reader.result.slice(0)).then((buf) => {
+          this.customBuffer = buf;
+          this.hitPreset = "custom";
+          resolve();
+        }).catch(reject);
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  setSfxVolume(v){ this.ensureCtx(); this.sfxGain.gain.value = v; }
+  setMusicVolume(v){ this.ensureCtx(); this.musicGain.gain.value = v; }
+  loadMusic(file){
+    this.ensureCtx();
+    if(this.musicEl){
+      this.musicEl.pause();
+      try{ URL.revokeObjectURL(this.musicEl.src); }catch(e){}
+    }
+    const url = URL.createObjectURL(file);
+    this.musicEl = new Audio(url);
+    this.musicEl.loop = true;
+    if(this.musicSource) this.musicSource.disconnect();
+    this.musicSource = this.ctx.createMediaElementSource(this.musicEl);
+    this.musicSource.connect(this.analyser);
+    this.analyser.connect(this.musicGain);
+    this.musicEl.play().catch(()=>{});
+  }
+  toggleMusic(){
+    if(!this.musicEl) return "Play";
+    if(this.musicEl.paused){ this.musicEl.play().catch(()=>{}); return "Pause"; }
+    this.musicEl.pause();
+    return "Play";
+  }
+}
+const audioEngine = new AudioEngine();
+
+/* ---------------- concept 1: ring escape ---------------- */
+
+function createRingEscapeSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const HOLE_SIZE = Math.PI / 8;
+  const MAX_BALLS = 70;
+  let ringAngle = 0, ringHue = 190, escapedCount = 0;
+  let balls = [], particles = [];
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function ringRadius(){ return Math.min(canvas.width, canvas.height) * 0.34; }
+
+  function spawnBall(hue){
+    const c = center();
+    const a = rand(0, TAU), s = rand(4, 7);
+    return { x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 8,
+      hue: hue === undefined ? rand(0, 360) : hue, escaped: false, escapedFrames: 0 };
+  }
+  function burst(x, y, hue){
+    for(let i = 0; i < 14; i++){
+      const a = rand(0, TAU), s = rand(2, 6);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+  function reset(){ balls = [spawnBall()]; particles = []; escapedCount = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    ringAngle += 0.01 * steps;
+    ringHue = (ringHue + 0.3 * steps) % 360;
+    const R = ringRadius(), c = center();
+
+    for(let i = 0; i < balls.length; i++){
+      const a = balls[i]; if(a.escaped) continue;
+      for(let j = i + 1; j < balls.length; j++){
+        const b = balls[j]; if(b.escaped) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = a.r + b.r;
+        if(dist > 0 && dist < minDist){
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (minDist - dist) / 2;
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+          if(rel < 0){
+            const imp = -1.9 * rel / 2;
+            a.vx -= imp * nx; a.vy -= imp * ny;
+            b.vx += imp * nx; b.vy += imp * ny;
+          }
+        }
+      }
+    }
+
+    for(const b of balls){
+      b.vy += 0.15 * steps;
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      b.vx *= 0.999; b.vy *= 0.999;
+      if(b.escaped){ b.escapedFrames += steps; continue; }
+
+      const dx = b.x - c.x, dy = b.y - c.y;
+      const dist = Math.hypot(dx, dy);
+      const angle = ((Math.atan2(dy, dx) - ringAngle) % TAU + TAU) % TAU;
+      let inHole = false;
+      for(let i = 0; i < 4; i++){
+        const hole = i * Math.PI / 2;
+        let diff = Math.abs(angle - hole);
+        diff = Math.min(diff, TAU - diff);
+        if(diff < HOLE_SIZE / 2){ inHole = true; break; }
+      }
+      if(dist > R - b.r){
+        if(inHole){
+          if(!b.escaped){
+            b.escaped = true; escapedCount++;
+            burst(b.x, b.y, b.hue);
+            if(balls.length < MAX_BALLS) balls.push(spawnBall());
+          }
+        } else {
+          const nx = dx / dist, ny = dy / dist;
+          b.x = c.x + nx * (R - b.r); b.y = c.y + ny * (R - b.r);
+          const dot = b.vx * nx + b.vy * ny;
+          const speed = Math.hypot(b.vx, b.vy);
+          b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny;
+          b.vx *= 0.98; b.vy *= 0.98;
+          api.onCollide(clamp(speed / 10, 0.2, 2), Math.floor(b.hue / 45));
+        }
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.03 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+    for(let i = balls.length - 1; i >= 0; i--){
+      const b = balls[i];
+      if(b.escaped){
+        const off = b.x < -100 || b.x > canvas.width + 100 || b.y < -100 || b.y > canvas.height + 100 || b.escapedFrames > 150;
+        if(off) balls.splice(i, 1);
+      }
+    }
+    if(balls.length === 0) balls.push(spawnBall());
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.18)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center(), R = ringRadius();
+
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(ringAngle);
+    const ringColor = `hsl(${ringHue},100%,60%)`;
+    ctx.strokeStyle = ringColor; ctx.lineWidth = 10;
+    ctx.shadowColor = ringColor; ctx.shadowBlur = 22;
+    for(let i = 0; i < 4; i++){
+      const start = i * Math.PI / 2 + HOLE_SIZE / 2;
+      const end = (i + 1) * Math.PI / 2 - HOLE_SIZE / 2;
+      ctx.beginPath(); ctx.arc(0, 0, R, start, end); ctx.stroke();
+    }
+    ctx.restore(); ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const b of balls){
+      const alpha = b.escaped ? clamp(1 - b.escapedFrames / 150, 0, 1) : 1;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsla(${b.hue},100%,60%,${alpha})`;
+      ctx.shadowColor = `hsla(${b.hue},100%,60%,${alpha})`; ctx.shadowBlur = 18;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#8ff7ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BALLS ${balls.length}   ESCAPED ${escapedCount}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 2: shatter rings ---------------- */
+
+function createShatterRingsSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const MAX_BALLS = 64;
+  let rings = [], balls = [], particles = [], resetTimer = null;
+  const hueBase = 280;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+
+  function buildRings(){
+    rings = [];
+    const minR = Math.min(canvas.width, canvas.height) * 0.12;
+    const maxR = Math.min(canvas.width, canvas.height) * 0.42;
+    const count = 7;
+    for(let i = 0; i < count; i++){
+      rings.push({
+        radius: lerp(minR, maxR, i / (count - 1)),
+        gapAngle: rand(0, TAU),
+        gapWidth: rand(0.45, 0.65),
+        speed: rand(0.15, 0.4) * (i % 2 === 0 ? 1 : -1),
+        alive: true,
+        hue: (hueBase + i * 24) % 360
+      });
+    }
+  }
+  function spawnBall(x, y, hue){
+    const a = rand(0, TAU), s = rand(2, 5);
+    return { x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, r: 7, hue: hue === undefined ? rand(0, 360) : hue };
+  }
+  function burst(x, y, hue){
+    for(let i = 0; i < 16; i++){
+      const a = rand(0, TAU), s = rand(2, 7);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+  function reset(){
+    buildRings();
+    const c = center();
+    balls = [spawnBall(c.x, c.y)];
+    particles = [];
+    resetTimer = null;
+  }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const c = center();
+    for(const r of rings) r.gapAngle += r.speed * 0.01 * steps;
+
+    for(const b of balls){
+      b.vy += 0.08 * steps;
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      b.vx *= 0.999; b.vy *= 0.999;
+
+      const dx = b.x - c.x, dy = b.y - c.y;
+      const dist = Math.hypot(dx, dy);
+      const angle = (Math.atan2(dy, dx) % TAU + TAU) % TAU;
+
+      for(const ring of rings){
+        if(!ring.alive) continue;
+        if(Math.abs(dist - ring.radius) >= b.r + 3) continue;
+
+        let diff = Math.abs(((angle - ring.gapAngle) % TAU + TAU) % TAU);
+        diff = Math.min(diff, TAU - diff);
+
+        if(diff < ring.gapWidth / 2){
+          ring.alive = false;
+          burst(b.x, b.y, ring.hue);
+          const current = balls.slice();
+          for(const ob of current){
+            if(balls.length >= MAX_BALLS) break;
+            balls.push(spawnBall(ob.x, ob.y, ob.hue));
+          }
+          api.onCollide(1.3, Math.floor(ring.hue / 45));
+        } else {
+          const nx = dx / dist, ny = dy / dist;
+          const speed = Math.hypot(b.vx, b.vy);
+          const dot = b.vx * nx + b.vy * ny;
+          b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny;
+          b.vx *= 0.96; b.vy *= 0.96;
+          if(dist < ring.radius){
+            b.x = c.x + nx * (ring.radius - (b.r + 2));
+            b.y = c.y + ny * (ring.radius - (b.r + 2));
+          } else {
+            b.x = c.x + nx * (ring.radius + (b.r + 2));
+            b.y = c.y + ny * (ring.radius + (b.r + 2));
+          }
+          api.onCollide(clamp(speed / 9, 0.2, 2), Math.floor(ring.hue / 45));
+        }
+        break;
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.95; p.vy *= 0.95;
+      p.life -= 0.025 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+
+    if(rings.every(r => !r.alive)){
+      if(resetTimer === null) resetTimer = 60;
+      resetTimer -= steps;
+      if(resetTimer <= 0) reset();
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+
+    for(const ring of rings){
+      if(!ring.alive) continue;
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      const color = `hsl(${ring.hue},90%,60%)`;
+      ctx.strokeStyle = color; ctx.lineWidth = 6;
+      ctx.shadowColor = color; ctx.shadowBlur = 14;
+      const start = ring.gapAngle + ring.gapWidth / 2;
+      const end = ring.gapAngle + TAU - ring.gapWidth / 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, ring.radius, start, end);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 16;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    const alive = rings.filter(r => r.alive).length;
+    ctx.fillStyle = "#ffb37a";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BALLS ${balls.length}   RINGS LEFT ${alive}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 3: multiplier cascade ---------------- */
+
+function createMultiplierSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const MAX_BALLS = 64;
+  let balls = [], gates = [], particles = [], t = 0, idleTimer = 0;
+
+  function buildGates(){
+    const h = canvas.height;
+    const mults = [1, 2, 2, 3];
+    gates = mults.map((m, i) => ({
+      y: h * 0.22 + i * (h * 0.16),
+      mult: m,
+      width: 74,
+      phase: rand(0, TAU),
+      speed: rand(0.4, 0.8) * (i % 2 === 0 ? 1 : -1),
+      used: false,
+      hue: [190, 150, 45, 320][i % 4]
+    }));
+  }
+  function spawnBall(x, y, hue){
+    return { x, y, vx: rand(-1.5, 1.5), vy: rand(0, 1), r: 7, hue: hue === undefined ? rand(0, 360) : hue, lastY: y };
+  }
+  function burst(x, y, hue){
+    for(let i = 0; i < 16; i++){
+      const a = rand(0, TAU), s = rand(2, 6);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+  function reset(){
+    buildGates();
+    balls = [spawnBall(canvas.width / 2, 40)];
+    particles = [];
+    idleTimer = 0;
+  }
+  reset();
+
+  function gateX(gate){
+    return canvas.width / 2 + Math.sin(t * gate.speed + gate.phase) * (canvas.width * 0.28);
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    t += 0.03 * steps;
+    const w = canvas.width, h = canvas.height;
+    const floorY = h - 40;
+
+    for(const b of balls){
+      b.vy += 0.12 * steps;
+      b.x += b.vx * steps; b.y += b.vy * steps;
+
+      if(b.x < b.r){ b.x = b.r; b.vx *= -0.9; api.onCollide(0.3, 0); }
+      if(b.x > w - b.r){ b.x = w - b.r; b.vx *= -0.9; api.onCollide(0.3, 0); }
+
+      for(const gate of gates){
+        if(gate.used) continue;
+        const crossed = (b.lastY - gate.y) * (b.y - gate.y) <= 0 && Math.abs(b.y - gate.y) < 10;
+        if(!crossed) continue;
+        const gx = gateX(gate);
+        if(Math.abs(b.x - gx) < gate.width / 2){
+          gate.used = true;
+          burst(b.x, b.y, gate.hue);
+          const before = balls.length;
+          const target = Math.min(MAX_BALLS, before * gate.mult);
+          for(let k = before; k < target; k++){
+            balls.push(spawnBall(b.x + rand(-10, 10), b.y, gate.hue));
+          }
+          api.onCollide(1.2, Math.floor(gate.hue / 45));
+        } else {
+          b.vy *= -0.6;
+          b.y = gate.y - Math.sign(b.vy || 1) * 6;
+          b.vx += rand(-0.4, 0.4);
+          api.onCollide(0.4, 1);
+        }
+      }
+      b.lastY = b.y;
+
+      if(b.y > floorY - b.r){
+        b.y = floorY - b.r; b.vy *= -0.55;
+        b.vx += rand(-0.3, 0.3);
+        if(Math.abs(b.vy) > 0.5) api.onCollide(clamp(Math.abs(b.vy) / 8, 0.15, 1.5), 2);
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.95; p.vy *= 0.95;
+      p.life -= 0.025 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+
+    if(gates.every(g => g.used) || balls.length >= MAX_BALLS){
+      idleTimer += steps;
+      if(idleTimer > 180) reset();
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const w = canvas.width;
+
+    for(const gate of gates){
+      const gx = gateX(gate);
+      const color = gate.used ? "rgba(255,255,255,0.15)" : `hsl(${gate.hue},90%,60%)`;
+      ctx.strokeStyle = color; ctx.lineWidth = 6;
+      if(!gate.used){ ctx.shadowColor = color; ctx.shadowBlur = 14; }
+      ctx.beginPath();
+      ctx.moveTo(0, gate.y); ctx.lineTo(gx - gate.width / 2, gate.y);
+      ctx.moveTo(gx + gate.width / 2, gate.y); ctx.lineTo(w, gate.y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      if(!gate.used){
+        ctx.fillStyle = color;
+        ctx.font = "bold 15px 'JetBrains Mono', monospace";
+        ctx.fillText(`x${gate.mult}`, gx - 10, gate.y - 10);
+      }
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 16;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#c7a8ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BALLS ${balls.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 4: polygon erosion ---------------- */
+
+function createPolygonSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let segments = [], segCount = 32, remaining = 32, angleOffset = 0, ball = null, particles = [], round = 1;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function radius(){ return Math.min(canvas.width, canvas.height) * 0.36; }
+
+  function buildSegments(n){
+    segCount = n; remaining = n;
+    segments = new Array(n).fill(true);
+  }
+  function spawnBall(){
+    const c = center();
+    const a = rand(0, TAU), s = rand(3, 5);
+    return { x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 8, hue: rand(0, 360) };
+  }
+  function reset(){
+    buildSegments(clamp(24 + round * 4, 24, 64));
+    ball = spawnBall();
+    particles = [];
+    angleOffset = 0;
+  }
+  reset();
+
+  function burst(x, y, hue){
+    for(let i = 0; i < 16; i++){
+      const a = rand(0, TAU), s = rand(2, 6);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    angleOffset += 0.004 * steps;
+    const c = center(), R = radius();
+
+    ball.vy += 0.1 * steps;
+    ball.x += ball.vx * steps; ball.y += ball.vy * steps;
+    ball.vx *= 0.999; ball.vy *= 0.999;
+
+    const dx = ball.x - c.x, dy = ball.y - c.y;
+    const dist = Math.hypot(dx, dy);
+
+    if(dist > R - ball.r){
+      const angle = ((Math.atan2(dy, dx) - angleOffset) % TAU + TAU) % TAU;
+      const segAngle = TAU / segCount;
+      const idx = Math.floor(angle / segAngle) % segCount;
+
+      if(segments[idx]){
+        const nx = dx / dist, ny = dy / dist;
+        ball.x = c.x + nx * (R - ball.r);
+        ball.y = c.y + ny * (R - ball.r);
+        const dot = ball.vx * nx + ball.vy * ny;
+        const speed = Math.hypot(ball.vx, ball.vy);
+        ball.vx -= 2 * dot * nx; ball.vy -= 2 * dot * ny;
+        ball.vx *= 0.98; ball.vy *= 0.98;
+        segments[idx] = false;
+        remaining--;
+        burst(ball.x, ball.y, ball.hue);
+        api.onCollide(clamp(speed / 9, 0.3, 2), idx % 8);
+      } else if(dist > R + 90){
+        round++;
+        reset();
+        return;
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.95; p.vy *= 0.95;
+      p.life -= 0.02 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center(), R = radius();
+    const segAngle = TAU / segCount;
+
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(angleOffset);
+    ctx.strokeStyle = "#7CFFB2";
+    ctx.lineWidth = 6;
+    ctx.shadowColor = "#7CFFB2"; ctx.shadowBlur = 12;
+    for(let i = 0; i < segCount; i++){
+      if(!segments[i]) continue;
+      const a0 = i * segAngle + 0.01, a1 = (i + 1) * segAngle - 0.01;
+      ctx.beginPath();
+      ctx.arc(0, 0, R, a0, a1);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+    ctx.fillStyle = `hsl(${ball.hue},100%,62%)`;
+    ctx.shadowColor = `hsl(${ball.hue},100%,62%)`; ctx.shadowBlur = 16;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#e6fff2";
+    ctx.font = "bold 42px 'Orbitron', sans-serif";
+    ctx.fillText(remaining, c.x, c.y + 15);
+    ctx.textAlign = "left";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`ROUND ${round}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 5: trail swarm ---------------- */
+
+function createSwarmSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 16;
+  let balls = [];
+
+  function spawn(){
+    const w = canvas.width, h = canvas.height;
+    const a = rand(0, TAU), s = rand(1.5, 3.5);
+    return { x: rand(40, w - 40), y: rand(40, h - 40), vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: rand(5, 9), hue: rand(0, 360) };
+  }
+  function reset(){ balls = Array.from({ length: COUNT }, spawn); }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const w = canvas.width, h = canvas.height;
+
+    for(let i = 0; i < balls.length; i++){
+      const a = balls[i];
+      for(let j = i + 1; j < balls.length; j++){
+        const b = balls[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = a.r + b.r;
+        if(dist > 0 && dist < minDist){
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (minDist - dist) / 2;
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+          if(rel < 0){
+            const imp = -rel;
+            a.vx -= imp * nx * 0.5; a.vy -= imp * ny * 0.5;
+            b.vx += imp * nx * 0.5; b.vy += imp * ny * 0.5;
+            api.onCollide(clamp(Math.abs(rel) / 6, 0.1, 1), Math.floor(a.hue / 45));
+          }
+        }
+      }
+    }
+
+    for(const b of balls){
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      if(b.x < b.r){ b.x = b.r; b.vx *= -1; api.onCollide(0.3, 0); }
+      if(b.x > w - b.r){ b.x = w - b.r; b.vx *= -1; api.onCollide(0.3, 0); }
+      if(b.y < b.r){ b.y = b.r; b.vy *= -1; api.onCollide(0.3, 1); }
+      if(b.y > h - b.r){ b.y = h - b.r; b.vy *= -1; api.onCollide(0.3, 1); }
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(6,6,12,0.12)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsla(${b.hue},100%,65%,0.9)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,65%)`; ctx.shadowBlur = 18;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#ffe7ad";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BALLS ${balls.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 6: plinko pegs ---------------- */
+
+function createPlinkoSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const BIN_COUNT = 12;
+  const MAX_BALLS = 40;
+  let pegs = [], balls = [], particles = [], bins = [], spawnTimer = 0;
+
+  function buildPegs(){
+    pegs = [];
+    const rows = 9;
+    const topMargin = canvas.height * 0.12;
+    const rowGap = (canvas.height * 0.6) / rows;
+    for(let r = 0; r < rows; r++){
+      const cols = 7;
+      const colGap = canvas.width / (cols + 1);
+      const offset = (r % 2 === 0) ? 0 : colGap / 2;
+      for(let cIdx = 1; cIdx <= cols; cIdx++){
+        const x = cIdx * colGap + offset;
+        if(x < 20 || x > canvas.width - 20) continue;
+        pegs.push({ x, y: topMargin + r * rowGap, r: 4, hue: (r * 30) % 360 });
+      }
+    }
+  }
+  function spawnBall(){
+    return { x: canvas.width / 2 + rand(-8, 8), y: 20, vx: rand(-0.5, 0.5), vy: 0, r: 6, hue: rand(0, 360) };
+  }
+  function reset(){ buildPegs(); bins = new Array(BIN_COUNT).fill(0); balls = []; particles = []; spawnTimer = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    spawnTimer -= steps;
+    if(spawnTimer <= 0 && balls.length < MAX_BALLS){
+      balls.push(spawnBall());
+      spawnTimer = 22;
+    }
+
+    const floorY = canvas.height * 0.92;
+    const binWidth = canvas.width / BIN_COUNT;
+
+    for(let i = balls.length - 1; i >= 0; i--){
+      const b = balls[i];
+      b.vy += 0.12 * steps;
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      b.vx *= 0.998;
+
+      for(const p of pegs){
+        const dx = b.x - p.x, dy = b.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = b.r + p.r;
+        if(dist < minDist && dist > 0){
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = minDist - dist;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const dot = b.vx * nx + b.vy * ny;
+          const speed = Math.hypot(b.vx, b.vy);
+          b.vx -= 1.7 * dot * nx; b.vy -= 1.7 * dot * ny;
+          b.vx += rand(-0.5, 0.5);
+          api.onCollide(clamp(speed / 8, 0.15, 1.2), Math.floor(p.hue / 45));
+        }
+      }
+      if(b.x < b.r){ b.x = b.r; b.vx *= -0.6; }
+      if(b.x > canvas.width - b.r){ b.x = canvas.width - b.r; b.vx *= -0.6; }
+
+      if(b.y > floorY){
+        const idx = clamp(Math.floor(b.x / binWidth), 0, BIN_COUNT - 1);
+        bins[idx]++;
+        for(let k = 0; k < 10; k++){
+          const a = rand(0, TAU), s = rand(1, 4);
+          particles.push({ x: b.x, y: floorY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1, life: 1, hue: b.hue });
+        }
+        api.onCollide(0.6, idx % 8);
+        balls.splice(i, 1);
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vy += 0.08 * steps;
+      p.life -= 0.03 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const p of pegs){
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU);
+      const c = `hsl(${p.hue},70%,60%)`;
+      ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    const floorY = canvas.height * 0.92;
+    const binWidth = canvas.width / BIN_COUNT;
+    const maxBin = Math.max(1, ...bins);
+    const maxBarHeight = canvas.height * 0.2;
+    for(let i = 0; i < BIN_COUNT; i++){
+      const hgt = (bins[i] / maxBin) * maxBarHeight;
+      ctx.fillStyle = "rgba(96,165,250,0.55)";
+      ctx.fillRect(i * binWidth + 2, floorY + 8 + (maxBarHeight - hgt), binWidth - 4, hgt);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(canvas.width, floorY); ctx.stroke();
+
+    for(const pt of particles){
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 3 * pt.life, 0, TAU);
+      ctx.fillStyle = `hsla(${pt.hue},100%,65%,${pt.life})`;
+      ctx.shadowColor = `hsla(${pt.hue},100%,65%,${pt.life})`; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#a9d4ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`DROPPED ${bins.reduce((a, b) => a + b, 0)}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 7: orbit well ---------------- */
+
+function createOrbitSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 9;
+  let balls = [], particles = [];
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function boundary(){ return Math.min(canvas.width, canvas.height) * 0.45; }
+
+  function spawnBall(){
+    const c = center();
+    const R = boundary();
+    const dist = rand(R * 0.3, R * 0.85);
+    const angle = rand(0, TAU);
+    const x = c.x + Math.cos(angle) * dist;
+    const y = c.y + Math.sin(angle) * dist;
+    const speed = Math.sqrt(1400 / dist);
+    const vx = -Math.sin(angle) * speed + rand(-0.3, 0.3);
+    const vy = Math.cos(angle) * speed + rand(-0.3, 0.3);
+    return { x, y, vx, vy, r: 6, hue: rand(0, 360), _flash: false };
+  }
+  function reset(){ balls = Array.from({ length: COUNT }, spawnBall); particles = []; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const c = center(), R = boundary();
+
+    for(const b of balls){
+      const dx = c.x - b.x, dy = c.y - b.y;
+      const dist = Math.max(28, Math.hypot(dx, dy));
+      const force = 1400 / (dist * dist);
+      b.vx += (dx / dist) * force * steps * 0.1;
+      b.vy += (dy / dist) * force * steps * 0.1;
+      b.x += b.vx * steps; b.y += b.vy * steps;
+
+      const distFromCenter = Math.hypot(b.x - c.x, b.y - c.y);
+      if(distFromCenter > R - b.r){
+        const nx = (b.x - c.x) / distFromCenter, ny = (b.y - c.y) / distFromCenter;
+        b.x = c.x + nx * (R - b.r); b.y = c.y + ny * (R - b.r);
+        const dot = b.vx * nx + b.vy * ny;
+        const speed = Math.hypot(b.vx, b.vy);
+        b.vx -= 1.9 * dot * nx; b.vy -= 1.9 * dot * ny;
+        b.vx *= 0.95; b.vy *= 0.95;
+        api.onCollide(clamp(speed / 10, 0.2, 1.6), Math.floor(b.hue / 45));
+      }
+      if(distFromCenter < 40 && !b._flash){
+        b._flash = true;
+        api.onCollide(clamp(Math.hypot(b.vx, b.vy) / 10, 0.3, 1.8), 3);
+        for(let i = 0; i < 6; i++){
+          const a = rand(0, TAU);
+          particles.push({ x: b.x, y: b.y, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2, life: 1, hue: b.hue });
+        }
+      } else if(distFromCenter > 60){
+        b._flash = false;
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.03 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.14)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+
+    const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 40);
+    grad.addColorStop(0, "rgba(255,255,255,0.9)");
+    grad.addColorStop(1, "rgba(180,120,255,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(c.x, c.y, 40, 0, TAU); ctx.fill();
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,70%,${p.life})`;
+      ctx.fill();
+    }
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#f5c2e7";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`ORBITERS ${balls.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 8: spiral vortex ---------------- */
+
+function createVortexSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 12;
+  let balls = [];
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function maxR(){ return Math.min(canvas.width, canvas.height) * 0.45; }
+
+  function spawnBall(){
+    return { angle: rand(0, TAU), radius: maxR() * rand(0.85, 1), angSpeed: rand(0.4, 0.8), hue: rand(0, 360), r: 6 };
+  }
+  function reset(){ balls = Array.from({ length: COUNT }, spawnBall); }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const R = maxR();
+    for(const b of balls){
+      const drainRate = 0.008 + (1 - b.radius / R) * 0.02;
+      b.radius -= drainRate * steps * 20;
+      const angSpeed = b.angSpeed * (R / Math.max(b.radius, 20));
+      b.angle += angSpeed * 0.02 * steps;
+
+      if(b.radius < 14){
+        api.onCollide(clamp(angSpeed / 6, 0.3, 1.8), Math.floor(b.hue / 45));
+        Object.assign(b, spawnBall());
+      }
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.16)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    for(let k = 0; k < 3; k++){
+      ctx.beginPath();
+      for(let a = 0; a < TAU * 2.2; a += 0.1){
+        const r = (a / (TAU * 2.2)) * maxR();
+        const x = c.x + Math.cos(a + k * 2.1) * r;
+        const y = c.y + Math.sin(a + k * 2.1) * r;
+        if(a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    for(const b of balls){
+      const x = c.x + Math.cos(b.angle) * b.radius;
+      const y = c.y + Math.sin(b.angle) * b.radius;
+      ctx.beginPath(); ctx.arc(x, y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#9dffe0";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`SPIRALING ${balls.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 9: merge blobs ---------------- */
+
+function createMergeSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const MAX_R = 26;
+  const MIN_COUNT = 8;
+  let balls = [], particles = [];
+
+  function spawnBall(x, y, r, hue){
+    const w = canvas.width, h = canvas.height;
+    const a = rand(0, TAU), s = rand(1, 2.5);
+    return {
+      x: x === undefined ? rand(40, w - 40) : x,
+      y: y === undefined ? rand(40, h - 40) : y,
+      vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      r: r || rand(8, 12),
+      hue: hue === undefined ? rand(0, 360) : hue
+    };
+  }
+  function reset(){ balls = Array.from({ length: 12 }, () => spawnBall()); particles = []; }
+  reset();
+
+  function burst(x, y, hue, n){
+    for(let i = 0; i < n; i++){
+      const a = rand(0, TAU), s = rand(2, 6);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const w = canvas.width, h = canvas.height;
+
+    for(const b of balls){
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      if(b.x < b.r){ b.x = b.r; b.vx *= -1; }
+      if(b.x > w - b.r){ b.x = w - b.r; b.vx *= -1; }
+      if(b.y < b.r){ b.y = b.r; b.vy *= -1; }
+      if(b.y > h - b.r){ b.y = h - b.r; b.vy *= -1; }
+    }
+
+    outer:
+    for(let i = 0; i < balls.length; i++){
+      const a = balls[i];
+      for(let j = i + 1; j < balls.length; j++){
+        const b = balls[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        if(dist < a.r + b.r && dist > 0){
+          const newR = Math.sqrt(a.r * a.r + b.r * b.r);
+          if(newR <= MAX_R){
+            const totalMass = a.r * a.r + b.r * b.r;
+            const nx = (a.x * a.r * a.r + b.x * b.r * b.r) / totalMass;
+            const ny = (a.y * a.r * a.r + b.y * b.r * b.r) / totalMass;
+            const nvx = (a.vx * a.r * a.r + b.vx * b.r * b.r) / totalMass;
+            const nvy = (a.vy * a.r * a.r + b.vy * b.r * b.r) / totalMass;
+            const merged = { x: nx, y: ny, vx: nvx, vy: nvy, r: newR, hue: (a.hue + b.hue) / 2 };
+            burst(nx, ny, merged.hue, 10);
+            api.onCollide(clamp(newR / 20, 0.3, 1.8), Math.floor(merged.hue / 45));
+            balls.splice(j, 1); balls.splice(i, 1);
+            balls.push(merged);
+            break outer;
+          } else {
+            const pieces = Math.floor(rand(3, 5));
+            burst(a.x, a.y, a.hue, 18);
+            api.onCollide(1.6, 5);
+            balls.splice(j, 1); balls.splice(i, 1);
+            for(let k = 0; k < pieces; k++){
+              balls.push(spawnBall(a.x + rand(-10, 10), a.y + rand(-10, 10), rand(7, 11), a.hue + rand(-20, 20)));
+            }
+            break outer;
+          }
+        }
+      }
+    }
+
+    while(balls.length < MIN_COUNT) balls.push(spawnBall());
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.95; p.vy *= 0.95;
+      p.life -= 0.025 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsla(${b.hue},95%,60%,0.92)`;
+      ctx.shadowColor = `hsl(${b.hue},95%,60%)`; ctx.shadowBlur = 16;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffd0f0";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BLOBS ${balls.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 10: piston squeeze ---------------- */
+
+function createPistonSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 16;
+  const CYCLE = 6;
+  let balls = [], particles = [], progress = 0, releasing = false;
+
+  function maxHalf(){ return { hw: canvas.width * 0.42, hh: canvas.height * 0.34 }; }
+  function minHalf(){ return { hw: canvas.width * 0.14, hh: canvas.height * 0.12 }; }
+
+  function spawnBall(){
+    const w = canvas.width, h = canvas.height;
+    const a = rand(0, TAU), s = rand(1, 2.5);
+    return { x: w / 2 + rand(-40, 40), y: h / 2 + rand(-40, 40), vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: rand(5, 8), hue: rand(0, 360) };
+  }
+  function reset(){ balls = Array.from({ length: COUNT }, spawnBall); particles = []; progress = 0; releasing = false; }
+  reset();
+
+  function bounds(){
+    const M = maxHalf(), m = minHalf();
+    const t = clamp(progress, 0, 1);
+    return { hw: lerp(M.hw, m.hw, t), hh: lerp(M.hh, m.hh, t) };
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
+
+    if(!releasing){
+      progress += (steps / 60) / CYCLE;
+      if(progress >= 1){
+        progress = 1; releasing = true;
+        for(const b of balls){
+          const a = Math.atan2(b.y - cy, b.x - cx);
+          b.vx += Math.cos(a) * 6; b.vy += Math.sin(a) * 6;
+        }
+        for(let i = 0; i < 30; i++){
+          const a = rand(0, TAU), s = rand(3, 9);
+          particles.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 360) });
+        }
+        api.onCollide(2, 6);
+      }
+    } else {
+      progress -= (steps / 60) / (CYCLE * 0.6);
+      if(progress <= 0){ progress = 0; releasing = false; }
+    }
+
+    const { hw, hh } = bounds();
+
+    for(const b of balls){
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      b.vx *= 0.999; b.vy *= 0.999;
+      const left = cx - hw + b.r, right = cx + hw - b.r, top = cy - hh + b.r, bottom = cy + hh - b.r;
+      if(b.x < left){ b.x = left; b.vx *= -0.92; api.onCollide(clamp(Math.abs(b.vx) / 6, 0.15, 1.4), 0); }
+      if(b.x > right){ b.x = right; b.vx *= -0.92; api.onCollide(clamp(Math.abs(b.vx) / 6, 0.15, 1.4), 0); }
+      if(b.y < top){ b.y = top; b.vy *= -0.92; api.onCollide(clamp(Math.abs(b.vy) / 6, 0.15, 1.4), 1); }
+      if(b.y > bottom){ b.y = bottom; b.vy *= -0.92; api.onCollide(clamp(Math.abs(b.vy) / 6, 0.15, 1.4), 1); }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.94; p.vy *= 0.94;
+      p.life -= 0.02 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
+    const { hw, hh } = bounds();
+
+    ctx.strokeStyle = "#ff5c72"; ctx.lineWidth = 5;
+    ctx.shadowColor = "#ff5c72"; ctx.shadowBlur = 16;
+    ctx.strokeRect(cx - hw, cy - hh, hw * 2, hh * 2);
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffb3bd";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(releasing ? "RELEASING" : `SQUEEZE ${Math.round(progress * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 11: double pendulum trails ---------------- */
+
+function createPendulumSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 5;
+  const g = 1400;
+  let pendulums = [];
+
+  function reset(){
+    pendulums = Array.from({ length: COUNT }, (_, i) => ({
+      L1: 90, L2: 90, m1: 10, m2: 10,
+      th1: 2.0 + i * 0.0009, th2: 2.4 - i * 0.0006,
+      w1: 0, w2: 0,
+      hue: (i * 60) % 360,
+      lastSide: 0
+    }));
+  }
+  reset();
+
+  function step(p, dt){
+    const { L1, L2, m1, m2 } = p;
+    let { th1, th2, w1, w2 } = p;
+
+    const num1 = -g * (2 * m1 + m2) * Math.sin(th1) - m2 * g * Math.sin(th1 - 2 * th2)
+      - 2 * Math.sin(th1 - th2) * m2 * (w2 * w2 * L2 + w1 * w1 * L1 * Math.cos(th1 - th2));
+    const den1 = L1 * (2 * m1 + m2 - m2 * Math.cos(2 * th1 - 2 * th2));
+    const a1 = num1 / den1;
+
+    const num2 = 2 * Math.sin(th1 - th2) * (w1 * w1 * L1 * (m1 + m2) + g * (m1 + m2) * Math.cos(th1) + w2 * w2 * L2 * m2 * Math.cos(th1 - th2));
+    const den2 = L2 * (2 * m1 + m2 - m2 * Math.cos(2 * th1 - 2 * th2));
+    const a2 = num2 / den2;
+
+    w1 += a1 * dt; w2 += a2 * dt;
+    th1 += w1 * dt; th2 += w2 * dt;
+
+    p.th1 = th1; p.th2 = th2; p.w1 = w1; p.w2 = w2;
+  }
+
+  function update(dt){
+    const subDt = 0.0016;
+    let steps = Math.max(1, Math.round(dt / subDt));
+    steps = Math.min(steps, 40);
+    for(const p of pendulums){
+      for(let s = 0; s < steps; s++) step(p, subDt);
+      const x2 = Math.sin(p.th1) * p.L1 + Math.sin(p.th2) * p.L2;
+      const side = x2 > 0 ? 1 : -1;
+      if(side !== p.lastSide){
+        api.onCollide(clamp(Math.abs(p.w2) / 4, 0.15, 1.4), Math.floor(p.hue / 45));
+        p.lastSide = side;
+      }
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.10)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const originX = canvas.width / 2, originY = canvas.height * 0.28;
+
+    for(let i = 0; i < pendulums.length; i++){
+      const p = pendulums[i];
+      const x1 = originX + Math.sin(p.th1) * p.L1;
+      const y1 = originY + Math.cos(p.th1) * p.L1;
+      const x2 = x1 + Math.sin(p.th2) * p.L2;
+      const y2 = y1 + Math.cos(p.th2) * p.L2;
+
+      if(i < 2){
+        ctx.strokeStyle = `hsla(${p.hue},80%,65%,0.35)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(originX, originY); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      ctx.beginPath(); ctx.arc(x2, y2, 5, 0, TAU);
+      ctx.fillStyle = `hsl(${p.hue},100%,65%)`;
+      ctx.shadowColor = `hsl(${p.hue},100%,65%)`; ctx.shadowBlur = 14;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#e0f5c8";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`PENDULUMS ${pendulums.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 12: gravity wells ---------------- */
+
+function createGravityWellsSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 16;
+  let attractors = [], particlesList = [], t = 0;
+
+  function buildAttractors(){
+    const w = canvas.width, h = canvas.height;
+    attractors = [
+      { x: w * 0.3, y: h * 0.35, hue: 190 },
+      { x: w * 0.7, y: h * 0.4, hue: 320 },
+      { x: w * 0.5, y: h * 0.72, hue: 45 }
+    ];
+  }
+  function spawnParticle(){
+    return { x: rand(0, canvas.width), y: rand(0, canvas.height), vx: rand(-1, 1), vy: rand(-1, 1), hue: rand(0, 360), _near: false };
+  }
+  function reset(){ buildAttractors(); particlesList = Array.from({ length: COUNT }, spawnParticle); t = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    t += steps;
+    const w = canvas.width, h = canvas.height;
+
+    for(const a of attractors){
+      for(const b of particlesList){
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.max(24, Math.hypot(dx, dy));
+        const force = 900 / (dist * dist);
+        b.vx += (dx / dist) * force * steps * 0.12;
+        b.vy += (dy / dist) * force * steps * 0.12;
+        if(dist < 34 && !b._near){
+          b._near = true;
+          api.onCollide(clamp(Math.hypot(b.vx, b.vy) / 6, 0.2, 1.6), Math.floor(a.hue / 45));
+        } else if(dist > 50){
+          b._near = false;
+        }
+      }
+    }
+
+    for(const b of particlesList){
+      b.vx *= 0.999; b.vy *= 0.999;
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      if(b.x < 0) b.x += w; if(b.x > w) b.x -= w;
+      if(b.y < 0) b.y += h; if(b.y > h) b.y -= h;
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.14)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const a of attractors){
+      const pulse = 8 + Math.sin(t * 0.05 + a.hue) * 3;
+      const grad = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, 34);
+      grad.addColorStop(0, `hsla(${a.hue},100%,70%,0.9)`);
+      grad.addColorStop(1, `hsla(${a.hue},100%,60%,0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(a.x, a.y, 34, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(a.x, a.y, pulse, 0, TAU);
+      ctx.fillStyle = `hsl(${a.hue},100%,75%)`;
+      ctx.fill();
+    }
+
+    for(const b of particlesList){
+      ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, TAU);
+      ctx.fillStyle = `hsla(${b.hue},100%,65%,0.9)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,65%)`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffe3ad";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`PARTICLES ${particlesList.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 13: kaleidoscope bounce ---------------- */
+
+function createKaleidoscopeSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const SYM = 7;
+  let balls = [], particles = [];
+
+  function boundary(){ return Math.min(canvas.width, canvas.height) * 0.42; }
+  function spawnBall(){
+    const a = rand(0, TAU), s = rand(2, 4);
+    return { x: 0, y: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: rand(4, 7), hue: rand(0, 360) };
+  }
+  function reset(){ balls = Array.from({ length: 5 }, spawnBall); particles = []; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const R = boundary();
+    for(const b of balls){
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      const dist = Math.hypot(b.x, b.y);
+      if(dist > R - b.r){
+        const nx = b.x / dist, ny = b.y / dist;
+        b.x = nx * (R - b.r); b.y = ny * (R - b.r);
+        const dot = b.vx * nx + b.vy * ny;
+        const speed = Math.hypot(b.vx, b.vy);
+        b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny;
+        api.onCollide(clamp(speed / 8, 0.2, 1.6), Math.floor(b.hue / 45));
+        particles.push({ x: b.x, y: b.y, life: 1, hue: b.hue });
+      }
+    }
+    for(let i = particles.length - 1; i >= 0; i--){
+      particles[i].life -= 0.02 * steps;
+      if(particles[i].life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.14)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    for(let s = 0; s < SYM; s++){
+      ctx.save();
+      ctx.rotate((TAU / SYM) * s);
+      for(const p of particles){
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4 * p.life, 0, TAU);
+        ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life * 0.6})`;
+        ctx.fill();
+        ctx.save(); ctx.scale(1, -1);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4 * p.life, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      for(const b of balls){
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+        ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+        ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+        ctx.fill();
+        ctx.save(); ctx.scale(1, -1);
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffe0fa";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`SHARDS ${balls.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 14: confetti storm ---------------- */
+
+function createConfettiSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const MAX = 140;
+  let pieces = [];
+
+  function spawnPiece(){
+    return {
+      x: rand(0, canvas.width), y: rand(-canvas.height * 0.3, 0),
+      vx: rand(-1, 1), vy: rand(1, 3),
+      rot: rand(0, TAU), vr: rand(-0.2, 0.2),
+      w: rand(6, 12), h: rand(10, 16),
+      hue: rand(0, 360), settled: false
+    };
+  }
+  function reset(){ pieces = []; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    if(pieces.length < MAX && Math.random() < 0.4 * steps) pieces.push(spawnPiece());
+
+    const floorY = canvas.height - 10;
+    for(const p of pieces){
+      if(p.settled) continue;
+      p.vy += 0.05 * steps;
+      p.x += p.vx * steps + Math.sin(p.y * 0.02) * 0.3 * steps;
+      p.y += p.vy * steps;
+      p.rot += p.vr * steps;
+      if(p.y > floorY){
+        p.y = floorY; p.settled = true; p.vy = 0;
+        api.onCollide(0.3, Math.floor(p.hue / 45));
+      }
+    }
+    if(pieces.filter(p => p.settled).length > MAX * 0.8){
+      pieces = pieces.filter(p => !p.settled).concat(pieces.filter(p => p.settled).slice(-20));
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.25)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for(const p of pieces){
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = `hsl(${p.hue},90%,60%)`;
+      ctx.shadowColor = `hsl(${p.hue},90%,60%)`; ctx.shadowBlur = 6;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#ffd6f0";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`CONFETTI ${pieces.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 15: ripple grid ---------------- */
+
+function createRippleSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COLS = 22, ROWS = 38;
+  const BANDS = 6;
+  const BAND_HUES = [8, 45, 95, 160, 210, 280];
+  let ripples = [], timer = 0, bandLevels = new Array(BANDS).fill(0), bandPrev = new Array(BANDS).fill(0), avgLevel = 0;
+
+  function reset(){ ripples = []; timer = 0; bandLevels.fill(0); bandPrev.fill(0); avgLevel = 0; }
+  reset();
+
+  function spawnRipple(x, y, hue, amp){
+    ripples.push({ x, y, t: 0, hue, amp: amp || 1 });
+    api.onCollide(clamp(0.3 * (amp || 1), 0.2, 1.6), Math.floor(hue / 45));
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const data = audioEngine.getFrequencyData();
+    const hasMusic = audioEngine.hasMusic();
+
+    if(hasMusic && data){
+      const bandSize = Math.floor(data.length / BANDS);
+      let total = 0;
+      for(let b = 0; b < BANDS; b++){
+        let sum = 0;
+        for(let i = b * bandSize; i < (b + 1) * bandSize; i++) sum += data[i];
+        const level = sum / bandSize / 255;
+        total += level;
+        bandLevels[b] = lerp(bandLevels[b], level, 0.35);
+        if(level > 0.5 && level - bandPrev[b] > 0.1){
+          spawnRipple(canvas.width * ((b + 0.5) / BANDS), canvas.height * rand(0.75, 0.95), BAND_HUES[b], 1 + level * 1.4);
+        }
+        bandPrev[b] = level;
+      }
+      avgLevel = lerp(avgLevel, total / BANDS, 0.15);
+    } else {
+      avgLevel = lerp(avgLevel, 0, 0.05);
+      timer -= steps;
+      if(timer <= 0){
+        spawnRipple(rand(0, canvas.width), rand(0, canvas.height), rand(0, 360), 1);
+        timer = rand(40, 90);
+      }
+    }
+
+    for(const r of ripples) r.t += 0.02 * steps;
+    ripples = ripples.filter(r => r.t < 2.2);
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.3)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const w = canvas.width, h = canvas.height;
+    const cw = w / COLS, ch = h / ROWS;
+
+    for(let gy = 0; gy < ROWS; gy++){
+      for(let gx = 0; gx < COLS; gx++){
+        const x = gx * cw + cw / 2, y = gy * ch + ch / 2;
+        let offset = avgLevel * 0.5, hue = 200;
+        for(const r of ripples){
+          const d = Math.hypot(x - r.x, y - r.y);
+          const wave = Math.sin(d * 0.06 - r.t * 6) * Math.exp(-r.t * 1.2) * Math.exp(-d * 0.0025) * r.amp;
+          offset += wave;
+          if(Math.abs(wave) > 0.05) hue = r.hue;
+        }
+        const size = 2 + Math.abs(offset) * 5;
+        const bright = clamp(30 + Math.abs(offset) * 180, 20, 92);
+        ctx.beginPath(); ctx.arc(x, y, size, 0, TAU);
+        ctx.fillStyle = `hsl(${hue},80%,${bright}%)`;
+        ctx.fill();
+      }
+    }
+
+    ctx.fillStyle = "#bfe9ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(audioEngine.hasMusic() ? "REACTING TO YOUR MUSIC" : `RIPPLES ${ripples.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 16: fireworks show ---------------- */
+
+function createFireworksSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let rockets = [], particles = [], timer = 0;
+
+  function reset(){ rockets = []; particles = []; timer = 0; }
+  reset();
+
+  function launchRocket(){
+    const x = rand(canvas.width * 0.2, canvas.width * 0.8);
+    rockets.push({ x, y: canvas.height, vx: rand(-0.5, 0.5), vy: -rand(8, 11), hue: rand(0, 360), targetY: rand(canvas.height * 0.15, canvas.height * 0.45) });
+  }
+  function explode(x, y, hue){
+    const n = Math.floor(rand(40, 60));
+    for(let i = 0; i < n; i++){
+      const a = rand(0, TAU), s = rand(2, 7);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: hue + rand(-20, 20) });
+    }
+    api.onCollide(1.6, Math.floor(hue / 45));
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    timer -= steps;
+    if(timer <= 0 && rockets.length < 4){ launchRocket(); timer = rand(45, 90); }
+
+    for(let i = rockets.length - 1; i >= 0; i--){
+      const r = rockets[i];
+      r.x += r.vx * steps; r.y += r.vy * steps;
+      r.vy += 0.03 * steps;
+      if(r.y <= r.targetY || r.vy >= 0){
+        explode(r.x, r.y, r.hue);
+        rockets.splice(i, 1);
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.vy += 0.06 * steps;
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.98; p.vy *= 0.98;
+      p.life -= 0.012 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(6,6,12,0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const r of rockets){
+      ctx.beginPath(); ctx.arc(r.x, r.y, 3, 0, TAU);
+      ctx.fillStyle = `hsl(${r.hue},100%,70%)`;
+      ctx.shadowColor = `hsl(${r.hue},100%,70%)`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 12;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffe9c4";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BURSTS ${rockets.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 17: lightning storm ---------------- */
+
+function createLightningSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let bolts = [], timer = 0, flash = 0, charge = 0, storms = 0, mega = false, megaTimer = 0;
+
+  function reset(){ bolts = []; timer = rand(40, 80); flash = 0; charge = 0; mega = false; megaTimer = 0; }
+  reset();
+
+  function genBolt(x1, y1, x2, y2, depth, spread){
+    let list = [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+    for(let d = depth; d > 0; d--){
+      const out = [list[0]];
+      for(let i = 0; i < list.length - 1; i++){
+        const a = list[i], b = list[i + 1];
+        const mx = (a.x + b.x) / 2 + rand(-spread, spread) / (depth - d + 1);
+        const my = (a.y + b.y) / 2;
+        out.push({ x: mx, y: my });
+        out.push(b);
+      }
+      list = out;
+    }
+    return list;
+  }
+
+  function strike(){
+    const x = rand(canvas.width * 0.2, canvas.width * 0.8);
+    const hue = rand(190, 260);
+    bolts.push({ points: genBolt(x, 0, x + rand(-80, 80), canvas.height, 6, 30), life: 1, hue, w: 2.5 });
+    flash = 0.35;
+    api.onCollide(1.1, Math.floor(hue / 45));
+    charge = Math.min(1, charge + rand(0.12, 0.2));
+  }
+
+  function megaStrike(){
+    const x = canvas.width / 2;
+    bolts.push({ points: genBolt(x, 0, x, canvas.height, 7, 60), life: 1.4, hue: 200, w: 7 });
+    bolts.push({ points: genBolt(x, 0, x - 50, canvas.height, 7, 55), life: 1.2, hue: 280, w: 4 });
+    bolts.push({ points: genBolt(x, 0, x + 50, canvas.height, 7, 55), life: 1.2, hue: 40, w: 4 });
+    flash = 1.4;
+    api.onCollide(2.4, 6);
+    storms++;
+    mega = true;
+    megaTimer = 40;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    if(!mega){
+      timer -= steps;
+      if(timer <= 0 && charge < 1){ strike(); timer = rand(35, 75); }
+      if(charge >= 1) megaStrike();
+    } else {
+      megaTimer -= steps;
+      if(megaTimer <= 0){ mega = false; charge = 0; timer = rand(50, 90); }
+    }
+
+    flash = Math.max(0, flash - 0.06 * steps);
+    for(const b of bolts) b.life -= (mega ? 0.02 : 0.035) * steps;
+    bolts = bolts.filter(b => b.life > 0);
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.3)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if(flash > 0){
+      ctx.fillStyle = `rgba(210,225,255,${Math.min(0.6, flash * 0.4)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    for(const b of bolts){
+      ctx.strokeStyle = `hsla(${b.hue},100%,80%,${clamp(b.life, 0, 1)})`;
+      ctx.lineWidth = b.w;
+      ctx.shadowColor = `hsl(${b.hue},100%,70%)`; ctx.shadowBlur = b.w * 6;
+      ctx.beginPath();
+      b.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    const barW = canvas.width * 0.5, barX = (canvas.width - barW) / 2, barY = canvas.height - 26;
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.strokeRect(barX, barY, barW, 8);
+    ctx.fillStyle = "#9fd8ff";
+    ctx.fillRect(barX, barY, barW * clamp(charge, 0, 1), 8);
+
+    ctx.fillStyle = "#d8e8ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(mega ? "MEGA STRIKE!" : `CHARGING ${Math.round(charge * 100)}%   STORMS ${storms}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 18: meteor shower ---------------- */
+
+function createMeteorSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let meteors = [], particles = [];
+
+  function spawnMeteor(){
+    return { x: rand(0, canvas.width * 1.2), y: rand(-100, -10), vx: -rand(3, 6), vy: rand(4, 7), len: rand(30, 60), hue: rand(180, 260) };
+  }
+  function reset(){ meteors = Array.from({ length: 8 }, spawnMeteor); particles = []; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const floorY = canvas.height * 0.92;
+
+    for(const m of meteors){
+      m.x += m.vx * steps; m.y += m.vy * steps;
+      if(m.y > floorY){
+        for(let i = 0; i < 10; i++){
+          const a = rand(0, TAU), s = rand(1, 4);
+          particles.push({ x: m.x, y: floorY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1, life: 1, hue: m.hue });
+        }
+        api.onCollide(clamp(Math.hypot(m.vx, m.vy) / 8, 0.2, 1.4), Math.floor(m.hue / 45));
+        Object.assign(m, spawnMeteor());
+      }
+      if(m.x < -100){ Object.assign(m, spawnMeteor()); }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vy += 0.08 * steps;
+      p.life -= 0.03 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,12,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const m of meteors){
+      const tx = m.x - m.vx * m.len / 6, ty = m.y - m.vy * m.len / 6;
+      const grad = ctx.createLinearGradient(m.x, m.y, tx, ty);
+      grad.addColorStop(0, `hsla(${m.hue},100%,80%,0.95)`);
+      grad.addColorStop(1, `hsla(${m.hue},100%,60%,0)`);
+      ctx.strokeStyle = grad; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,70%,${p.life})`;
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#cbd8ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`METEORS ${meteors.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 19: dna helix ---------------- */
+
+function createHelixSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const N = 26;
+  let t = 0;
+
+  function reset(){ t = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    t += 0.02 * steps;
+    if(Math.random() < 0.02 * steps) api.onCollide(0.4, Math.floor(rand(0, 8)));
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.16)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const w = canvas.width, h = canvas.height, cx = w / 2;
+    const amp = w * 0.22;
+    const spacing = h / (N - 1);
+
+    for(let i = 0; i < N; i++){
+      const y = i * spacing;
+      const phase = t + i * 0.35;
+      const x1 = cx + Math.sin(phase) * amp;
+      const x2 = cx + Math.sin(phase + Math.PI) * amp;
+      const z1 = Math.cos(phase), z2 = Math.cos(phase + Math.PI);
+
+      if(i % 2 === 0){
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+      }
+
+      const r1 = 4 + z1 * 2, r2 = 4 + z2 * 2;
+      const hue1 = (t * 20 + i * 10) % 360, hue2 = (hue1 + 180) % 360;
+
+      ctx.beginPath(); ctx.arc(x1, y, r1, 0, TAU);
+      ctx.fillStyle = `hsl(${hue1},90%,${55 + z1 * 15}%)`;
+      ctx.shadowColor = `hsl(${hue1},90%,60%)`; ctx.shadowBlur = 10;
+      ctx.fill();
+
+      ctx.beginPath(); ctx.arc(x2, y, r2, 0, TAU);
+      ctx.fillStyle = `hsl(${hue2},90%,${55 + z2 * 15}%)`;
+      ctx.shadowColor = `hsl(${hue2},90%,60%)`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#dcefff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`HELIX`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 20: starfield warp ---------------- */
+
+function createStarfieldSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const COUNT = 180;
+  let stars = [];
+
+  function spawnStar(){
+    return { x: rand(-1, 1), y: rand(-1, 1), z: rand(0.05, 1), hue: rand(180, 260) };
+  }
+  function reset(){ stars = Array.from({ length: COUNT }, spawnStar); }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    for(const s of stars){
+      s.z -= 0.012 * steps;
+      if(s.z <= 0.02){
+        Object.assign(s, spawnStar());
+        s.z = 1;
+        if(Math.random() < 0.3) api.onCollide(0.25, Math.floor(rand(0, 8)));
+      }
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.35)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const scale = Math.min(canvas.width, canvas.height);
+
+    for(const s of stars){
+      const k = 0.5 / s.z;
+      const x = cx + s.x * k * scale * 0.5;
+      const y = cy + s.y * k * scale * 0.5;
+      if(x < 0 || x > canvas.width || y < 0 || y > canvas.height) continue;
+      const size = clamp((1 - s.z) * 4, 0.5, 4);
+      const k2 = 0.5 / (s.z + 0.03);
+      const px = cx + s.x * k2 * scale * 0.5;
+      const py = cy + s.y * k2 * scale * 0.5;
+      ctx.strokeStyle = `hsla(${s.hue},90%,75%,${clamp(1 - s.z, 0.2, 1)})`;
+      ctx.lineWidth = size;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
+    }
+
+    ctx.fillStyle = "#c9e0ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`WARP ${stars.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 21: breakout bricks ---------------- */
+
+function createBreakoutSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const ROWS = 6, COLS = 10;
+  let bricks = [], balls = [], particles = [];
+
+  function buildBricks(){
+    bricks = [];
+    const w = canvas.width, topMargin = canvas.height * 0.08;
+    const bw = w / COLS, bh = canvas.height * 0.035;
+    for(let r = 0; r < ROWS; r++){
+      for(let c = 0; c < COLS; c++){
+        bricks.push({ x: c * bw, y: topMargin + r * (bh + 4), w: bw - 4, h: bh, hue: (r * 40 + c * 8) % 360, alive: true });
+      }
+    }
+  }
+  function spawnBall(){
+    const a = rand(Math.PI * 1.1, Math.PI * 1.9);
+    return { x: canvas.width / 2, y: canvas.height * 0.6, vx: Math.cos(a) * 4, vy: Math.sin(a) * 4, r: 7, hue: rand(0, 360) };
+  }
+  function reset(){ buildBricks(); balls = [spawnBall()]; particles = []; }
+  reset();
+
+  function burst(x, y, hue){
+    for(let i = 0; i < 10; i++){
+      const a = rand(0, TAU), s = rand(1, 4);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const w = canvas.width, h = canvas.height;
+
+    for(const b of balls){
+      b.x += b.vx * steps; b.y += b.vy * steps;
+      if(b.x < b.r){ b.x = b.r; b.vx *= -1; api.onCollide(0.3, 0); }
+      if(b.x > w - b.r){ b.x = w - b.r; b.vx *= -1; api.onCollide(0.3, 0); }
+      if(b.y < b.r){ b.y = b.r; b.vy *= -1; api.onCollide(0.3, 1); }
+      if(b.y > h - b.r){ Object.assign(b, spawnBall()); }
+
+      for(const brick of bricks){
+        if(!brick.alive) continue;
+        if(b.x + b.r > brick.x && b.x - b.r < brick.x + brick.w && b.y + b.r > brick.y && b.y - b.r < brick.y + brick.h){
+          brick.alive = false;
+          burst(b.x, b.y, brick.hue);
+          api.onCollide(0.9, Math.floor(brick.hue / 45));
+          const overlapX = Math.min(b.x + b.r - brick.x, brick.x + brick.w - (b.x - b.r));
+          const overlapY = Math.min(b.y + b.r - brick.y, brick.y + brick.h - (b.y - b.r));
+          if(overlapX < overlapY) b.vx *= -1; else b.vy *= -1;
+          break;
+        }
+      }
+    }
+
+    if(bricks.every(br => !br.alive)) buildBricks();
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.95; p.vy *= 0.95;
+      p.life -= 0.03 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const brick of bricks){
+      if(!brick.alive) continue;
+      const c = `hsl(${brick.hue},80%,58%)`;
+      ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = 8;
+      ctx.fillRect(brick.x + 2, brick.y, brick.w, brick.h);
+    }
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.fill();
+    }
+
+    for(const b of balls){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    const remaining = bricks.filter(b => b.alive).length;
+    ctx.fillStyle = "#ffe1e8";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BRICKS ${remaining}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: rising bubbles ---------------- */
+
+/* ---------------- concept 23: rising bubbles ---------------- */
+
+function createBubblesSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const MAX = 40;
+  let bubbles = [], particles = [];
+
+  function spawnBubble(){
+    return { x: rand(0, canvas.width), y: canvas.height + 20, r: rand(6, 22), vy: -rand(1, 2.5), wobble: rand(0, TAU), hue: rand(180, 220) };
+  }
+  function reset(){ bubbles = []; particles = []; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    if(bubbles.length < MAX && Math.random() < 0.3 * steps) bubbles.push(spawnBubble());
+
+    for(let i = bubbles.length - 1; i >= 0; i--){
+      const b = bubbles[i];
+      b.wobble += 0.05 * steps;
+      b.x += Math.sin(b.wobble) * 0.6 * steps;
+      b.y += b.vy * steps;
+      if(b.y < -30){
+        if(Math.random() < 0.5){
+          for(let k = 0; k < 8; k++){
+            const a = rand(0, TAU), s = rand(1, 3);
+            particles.push({ x: b.x, y: b.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: b.hue });
+          }
+          api.onCollide(0.4, Math.floor(b.hue / 45));
+        }
+        bubbles.splice(i, 1);
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.03 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(6,10,18,0.16)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const b of bubbles){
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.strokeStyle = `hsla(${b.hue},80%,75%,0.7)`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = `hsl(${b.hue},80%,75%)`; ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.25, 0, TAU);
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,80%,${p.life})`;
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#cdeeff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`BUBBLES ${bubbles.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 24: spirograph painter ---------------- */
+
+function createSpirographSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let t = 0, R = 0, r = 0, d = 0, hueShift = 0, points = 0, needsClear = true;
+
+  function randomize(){
+    R = rand(80, 160); r = rand(20, 70); d = rand(30, 100);
+    hueShift = rand(0, 360); t = 0; points = 0; needsClear = true;
+  }
+  function reset(){ randomize(); }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    t += 0.02 * steps;
+    points += steps;
+    if(points > 4000) randomize();
+    if(Math.random() < 0.003 * steps) api.onCollide(0.3, Math.floor(rand(0, 8)));
+  }
+
+  function draw(){
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    if(needsClear){
+      ctx.fillStyle = "#07070c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      needsClear = false;
+    }
+    const k = (R - r) / r;
+    for(let i = 0; i < 6; i++){
+      const tt = t - i * 0.004;
+      const x = cx + (R - r) * Math.cos(tt) + d * Math.cos(k * tt);
+      const y = cy + (R - r) * Math.sin(tt) - d * Math.sin(k * tt);
+      const hue = (hueShift + tt * 20) % 360;
+      ctx.beginPath(); ctx.arc(x, y, 1.6, 0, TAU);
+      ctx.fillStyle = `hsl(${hue},90%,65%)`;
+      ctx.shadowColor = `hsl(${hue},90%,65%)`; ctx.shadowBlur = 4;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(0, 0, 150, 34);
+    ctx.fillStyle = "#f0d9ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`SPIROGRAPH`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 25: color wave bars ---------------- */
+
+function createWaveBarsSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const BARS = 40;
+  let t = 0, levels = new Array(BARS).fill(0.2), particles = [], bassAvg = 0, bassPrev = 0;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function reset(){ t = 0; levels = new Array(BARS).fill(0.2); particles = []; bassAvg = 0; bassPrev = 0; }
+  reset();
+
+  function burst(hue, power){
+    const c = center();
+    for(let i = 0; i < 18; i++){
+      const a = rand(0, TAU), s = rand(2, 6) * power;
+      particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
+    }
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    t += 0.04 * steps;
+    const data = audioEngine.getFrequencyData();
+    const hasMusic = audioEngine.hasMusic();
+
+    if(hasMusic && data){
+      const bandSize = Math.floor(data.length / BARS);
+      let bass = 0;
+      for(let i = 0; i < BARS; i++){
+        let sum = 0;
+        for(let k = i * bandSize; k < (i + 1) * bandSize; k++) sum += data[k];
+        const level = sum / bandSize / 255;
+        levels[i] += (level - levels[i]) * 0.35 * Math.min(1, steps);
+        if(i < 6) bass += level;
+      }
+      bass /= 6;
+      bassAvg = lerp(bassAvg, bass, 0.08);
+      if(bass > bassAvg * 1.35 && bass > 0.4 && bass - bassPrev > 0.08){
+        burst(rand(0, 360), 1 + bass);
+        api.onCollide(clamp(bass * 1.6, 0.4, 2), Math.floor(rand(0, 8)));
+      }
+      bassPrev = bass;
+    } else {
+      for(let i = 0; i < BARS; i++){
+        const target = 0.25 + 0.6 * Math.abs(Math.sin(t * 0.6 + i * 0.4)) * Math.abs(Math.cos(t * 0.23 + i * 0.15));
+        levels[i] += (target - levels[i]) * 0.15 * Math.min(1, steps);
+      }
+      bassAvg = lerp(bassAvg, 0, 0.05);
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.02 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(6,6,14,0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+    const baseR = Math.min(canvas.width, canvas.height) * 0.16;
+    const maxLen = Math.min(canvas.width, canvas.height) * 0.3;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    for(let i = 0; i < BARS; i++){
+      const ang = (i / BARS) * TAU;
+      const len = baseR + levels[i] * maxLen;
+      const hue = (i / BARS) * 300 + t * 15;
+      const x1 = c.x + Math.cos(ang) * baseR, y1 = c.y + Math.sin(ang) * baseR;
+      const x2 = c.x + Math.cos(ang) * len, y2 = c.y + Math.sin(ang) * len;
+      ctx.strokeStyle = `hsl(${hue},95%,62%)`;
+      ctx.lineWidth = 4;
+      ctx.shadowColor = `hsl(${hue},95%,62%)`; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    const coreGlow = baseR * (0.7 + bassAvg * 0.6);
+    const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, coreGlow);
+    grad.addColorStop(0, `hsla(${(t * 20) % 360},100%,70%,0.55)`);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(c.x, c.y, coreGlow, 0, TAU); ctx.fill();
+
+    ctx.fillStyle = "#eaffef";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(audioEngine.hasMusic() ? "PULSING TO YOUR MUSIC" : "PULSE EQUALIZER", 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept 26: neon tunnel ---------------- */
+
+function createTunnelSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let rings = [], t = 0, timer = 0;
+
+  function spawnRing(){ return { z: 1, hue: rand(0, 360), sides: Math.random() < 0.5 ? 4 : 0 }; }
+  function reset(){ rings = []; t = 0; timer = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    t += 0.01 * steps;
+    timer -= steps;
+    if(timer <= 0){ rings.push(spawnRing()); timer = 14; }
+    for(const r of rings) r.z -= 0.012 * steps;
+    for(let i = rings.length - 1; i >= 0; i--){
+      if(rings[i].z <= 0.02){
+        rings.splice(i, 1);
+        api.onCollide(0.5, Math.floor(rand(0, 8)));
+      }
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.3)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const maxR = Math.max(canvas.width, canvas.height) * 0.75;
+
+    for(const r of rings){
+      const radius = maxR * (1 - r.z);
+      const alpha = clamp(1 - r.z, 0.1, 1);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(t * 2 + r.z * 3);
+      ctx.strokeStyle = `hsla(${r.hue},100%,65%,${alpha})`;
+      ctx.lineWidth = 4;
+      ctx.shadowColor = `hsl(${r.hue},100%,65%)`; ctx.shadowBlur = 16;
+      ctx.beginPath();
+      if(r.sides){
+        for(let i = 0; i <= r.sides; i++){
+          const a = (TAU / r.sides) * i;
+          const x = Math.cos(a) * radius, y = Math.sin(a) * radius;
+          if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+      } else {
+        ctx.arc(0, 0, radius, 0, TAU);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#dff0ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`TUNNEL`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: countdown core ---------------- */
+
+function createCountdownCoreSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let count, total, ball, particles, ringAngle, hue;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function R(){ return Math.min(canvas.width, canvas.height) * 0.34; }
+
+  function reset(){
+    total = Math.floor(rand(8, 16));
+    count = total;
+    const c = center(), a = rand(0, TAU), s = rand(4, 6);
+    ball = { x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 9 };
+    particles = []; ringAngle = 0; hue = rand(0, 360);
+  }
+  reset();
+
+  function detonate(){
+    const c = center();
+    for(let i = 0; i < 50; i++){
+      const a = rand(0, TAU), s = rand(3, 10);
+      particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 360) });
+    }
+    api.onCollide(2.4, 7);
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    ringAngle += 0.012 * steps;
+    const c = center(), r = R();
+    ball.vy += 0.05 * steps;
+    ball.x += ball.vx * steps; ball.y += ball.vy * steps;
+    const dx = ball.x - c.x, dy = ball.y - c.y;
+    const dist = Math.hypot(dx, dy);
+    if(dist > r - ball.r){
+      const nx = dx / dist, ny = dy / dist;
+      ball.x = c.x + nx * (r - ball.r); ball.y = c.y + ny * (r - ball.r);
+      const dot = ball.vx * nx + ball.vy * ny;
+      const speed = Math.hypot(ball.vx, ball.vy);
+      ball.vx -= 2 * dot * nx; ball.vy -= 2 * dot * ny;
+      ball.vx *= 0.99; ball.vy *= 0.99;
+      if(count > 0){
+        count--;
+        hue = (hue + 40) % 360;
+        api.onCollide(clamp(speed / 9, 0.3, 1.8), Math.floor(hue / 45));
+        if(count === 0) detonate();
+      }
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.018 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+    if(count === 0 && particles.length === 0) reset();
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center(), r = R();
+
+    ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(ringAngle);
+    ctx.strokeStyle = `hsl(${hue},95%,60%)`; ctx.lineWidth = 8;
+    ctx.shadowColor = `hsl(${hue},95%,60%)`; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+    ctx.restore(); ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    if(count > 0){
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+      ctx.fillStyle = `hsl(${hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${hue},100%,62%)`; ctx.shadowBlur = 16;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 46px 'Orbitron', sans-serif";
+    ctx.fillText(count > 0 ? count : "0", c.x, c.y + 16);
+    ctx.textAlign = "left";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText("COUNTDOWN CORE", 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: fuse line ---------------- */
+
+function createFuseLineSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let path = [], t = 0, particles = [], exploded = false, resetTimer = 0;
+
+  function buildPath(){
+    const w = canvas.width, h = canvas.height;
+    path = [];
+    const segs = 10;
+    for(let i = 0; i <= segs; i++){
+      path.push({ x: w * 0.1 + w * 0.8 * (i / segs), y: h * 0.2 + Math.sin(i * 1.3) * h * 0.25 + (i % 2 === 0 ? 0 : h * 0.1) });
+    }
+  }
+  function reset(){ buildPath(); t = 0; particles = []; exploded = false; resetTimer = 0; }
+  reset();
+
+  function pathLen(){
+    let len = 0;
+    for(let i = 0; i < path.length - 1; i++) len += Math.hypot(path[i + 1].x - path[i].x, path[i + 1].y - path[i].y);
+    return len;
+  }
+  function pointAt(dist){
+    let remaining = dist;
+    for(let i = 0; i < path.length - 1; i++){
+      const a = path[i], b = path[i + 1];
+      const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+      if(remaining <= segLen){
+        const tt = remaining / segLen;
+        return { x: lerp(a.x, b.x, tt), y: lerp(a.y, b.y, tt) };
+      }
+      remaining -= segLen;
+    }
+    return path[path.length - 1];
+  }
+
+  function explode(){
+    const end = path[path.length - 1];
+    for(let i = 0; i < 50; i++){
+      const a = rand(0, TAU), s = rand(3, 9);
+      particles.push({ x: end.x, y: end.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(20, 50) });
+    }
+    api.onCollide(2.2, 5);
+    exploded = true;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    if(!exploded){
+      t += 2.2 * steps;
+      if(t >= pathLen()) explode();
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 70) reset();
+    }
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.vy += 0.1 * steps;
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.02 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "rgba(255,200,140,0.5)"; ctx.lineWidth = 4;
+    ctx.beginPath();
+    path.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+
+    if(!exploded){
+      const head = pointAt(Math.min(t, pathLen()));
+      ctx.beginPath(); ctx.arc(head.x, head.y, 7, 0, TAU);
+      ctx.fillStyle = "#ffe08a";
+      ctx.shadowColor = "#ffb347"; ctx.shadowBlur = 18;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    const end = path[path.length - 1];
+    ctx.beginPath(); ctx.arc(end.x, end.y, 14, 0, TAU);
+    ctx.fillStyle = exploded ? "rgba(255,255,255,0.1)" : "#2a1a10";
+    ctx.strokeStyle = "#ff6b3d"; ctx.lineWidth = 3;
+    ctx.fill(); ctx.stroke();
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,60%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,60%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffd9b3";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(exploded ? "BOOM!" : `FUSE ${Math.round(100 * Math.min(t, pathLen()) / pathLen())}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: meter overload ---------------- */
+
+function createMeterOverloadSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let level = 0, balls = [], particles = [], overloaded = false, resetTimer = 0;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function R(){ return Math.min(canvas.width, canvas.height) * 0.32; }
+
+  function spawnBall(){
+    const a = rand(0, TAU), s = rand(3, 5);
+    return { x: 0, y: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 7, hue: rand(0, 360) };
+  }
+  function reset(){ level = 0; balls = [spawnBall()]; particles = []; overloaded = false; resetTimer = 0; }
+  reset();
+
+  function overload(){
+    const c = center();
+    for(let i = 0; i < 60; i++){
+      const a = rand(0, TAU), s = rand(3, 11);
+      particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 60) });
+    }
+    api.onCollide(2.4, 7);
+    overloaded = true;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const c = center(), r = R();
+
+    if(!overloaded){
+      for(const b of balls){
+        b.x += b.vx * steps; b.y += b.vy * steps;
+        const dist = Math.hypot(b.x, b.y);
+        if(dist > r - b.r){
+          const nx = b.x / dist, ny = b.y / dist;
+          b.x = nx * (r - b.r); b.y = ny * (r - b.r);
+          const dot = b.vx * nx + b.vy * ny;
+          const speed = Math.hypot(b.vx, b.vy);
+          b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny;
+          level = Math.min(1, level + 0.03);
+          api.onCollide(clamp(speed / 8, 0.2, 1.6), Math.floor(b.hue / 45));
+          if(level >= 1) overload();
+        }
+      }
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 80) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.016 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center(), r = R();
+
+    ctx.save(); ctx.translate(c.x, c.y);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+
+    const meterColor = level < 0.7 ? "#4ade80" : level < 0.92 ? "#facc15" : "#ef4444";
+    ctx.strokeStyle = meterColor; ctx.lineWidth = 10;
+    ctx.shadowColor = meterColor; ctx.shadowBlur = 16;
+    ctx.beginPath(); ctx.arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + TAU * level); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    if(!overloaded){
+      for(const b of balls){
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU);
+        ctx.fillStyle = `hsl(${b.hue},100%,62%)`;
+        ctx.shadowColor = `hsl(${b.hue},100%,62%)`; ctx.shadowBlur = 14;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,60%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,60%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(overloaded ? "OVERLOAD!" : `METER ${Math.round(level * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: chain domino ---------------- */
+
+function createDominoSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const N = 14;
+  let dominoes = [], falling = -1, particles = [], done = false, resetTimer = 0, timer = 40;
+
+  function reset(){
+    const w = canvas.width, h = canvas.height;
+    dominoes = [];
+    const startX = w * 0.1, endX = w * 0.9;
+    for(let i = 0; i < N; i++){
+      dominoes.push({ x: lerp(startX, endX, i / (N - 1)), y: h * 0.65, angle: 0, falling: false, settled: false, hue: (i * 24) % 360 });
+    }
+    falling = -1; particles = []; done = false; resetTimer = 0; timer = 40;
+  }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    if(!done){
+      if(falling === -1){
+        timer -= steps;
+        if(timer <= 0){ falling = 0; dominoes[0].falling = true; api.onCollide(0.6, 0); }
+      } else {
+        for(let i = 0; i < dominoes.length; i++){
+          const d = dominoes[i];
+          if(d.falling && !d.settled){
+            d.angle = Math.min(Math.PI / 2 * 0.62, d.angle + 0.09 * steps);
+            if(d.angle >= Math.PI / 2 * 0.6){
+              d.settled = true;
+              if(i + 1 < dominoes.length && !dominoes[i + 1].falling){
+                dominoes[i + 1].falling = true;
+                api.onCollide(0.5 + i * 0.02, i % 8);
+              } else if(i === dominoes.length - 1){
+                const c = { x: d.x, y: d.y };
+                for(let k = 0; k < 40; k++){
+                  const a = rand(0, TAU), s = rand(2, 8);
+                  particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 360) });
+                }
+                api.onCollide(2, 6);
+                done = true;
+              }
+            }
+          }
+        }
+      }
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 70) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vy += 0.1 * steps;
+      p.life -= 0.018 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const h = canvas.height;
+    const dh = h * 0.16, dw = dh * 0.28;
+
+    for(const d of dominoes){
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.angle);
+      ctx.fillStyle = `hsl(${d.hue},80%,60%)`;
+      ctx.shadowColor = `hsl(${d.hue},80%,60%)`; ctx.shadowBlur = 8;
+      ctx.fillRect(-dw / 2, -dh, dw, dh);
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffe8c8";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(done ? "CHAIN COMPLETE!" : "CHAIN REACTION", 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: black hole countdown ---------------- */
+
+function createBlackHoleSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let orbs = [], holeR = 14, particles = [], exploding = false, resetTimer = 0;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+
+  function spawnOrb(){
+    const R = Math.min(canvas.width, canvas.height) * 0.4;
+    return { angle: rand(0, TAU), radius: rand(R * 0.6, R), speed: rand(0.3, 0.6), hue: rand(0, 360), consumed: false };
+  }
+  function reset(){ orbs = Array.from({ length: 10 }, spawnOrb); holeR = 14; particles = []; exploding = false; resetTimer = 0; }
+  reset();
+
+  function supernova(){
+    const c = center();
+    for(let i = 0; i < 70; i++){
+      const a = rand(0, TAU), s = rand(4, 14);
+      particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(180, 320) });
+    }
+    api.onCollide(2.4, 5);
+    exploding = true;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const c = center();
+
+    if(!exploding){
+      let remaining = 0;
+      for(const o of orbs){
+        if(o.consumed) continue;
+        remaining++;
+        o.angle += o.speed * 0.02 * steps;
+        o.radius -= 0.15 * steps;
+        if(o.radius < holeR + 6){
+          o.consumed = true;
+          holeR += 2.2;
+          api.onCollide(0.9, Math.floor(o.hue / 45));
+        }
+      }
+      if(remaining === 0) supernova();
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 80) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.97; p.vy *= 0.97;
+      p.life -= 0.014 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+
+    if(!exploding){
+      for(const o of orbs){
+        if(o.consumed) continue;
+        const x = c.x + Math.cos(o.angle) * o.radius, y = c.y + Math.sin(o.angle) * o.radius;
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU);
+        ctx.fillStyle = `hsl(${o.hue},90%,62%)`;
+        ctx.shadowColor = `hsl(${o.hue},90%,62%)`; ctx.shadowBlur = 10;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, holeR * 2.4);
+      grad.addColorStop(0, "#000"); grad.addColorStop(0.5, "#1a0030"); grad.addColorStop(1, "rgba(80,0,120,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(c.x, c.y, holeR * 2.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(c.x, c.y, holeR, 0, TAU);
+      ctx.fillStyle = "#000"; ctx.fill();
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#e8d9ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(exploding ? "SUPERNOVA!" : `CONSUMED ${orbs.filter(o => o.consumed).length}/${orbs.length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: pressure valve ---------------- */
+
+function createPressureValveSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let balls = [], pressure = 0, particles = [], venting = false, ventTimer = 0;
+
+  function chamberBounds(){
+    const w = canvas.width, h = canvas.height;
+    return { x0: w * 0.25, x1: w * 0.75, y0: h * 0.3, y1: h * 0.85 };
+  }
+  function spawnBall(){
+    const b = chamberBounds();
+    const a = rand(0, TAU), s = rand(2, 4);
+    return { x: rand(b.x0 + 10, b.x1 - 10), y: rand(b.y0 + 10, b.y1 - 10), vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 6, hue: rand(0, 360) };
+  }
+  function reset(){ balls = Array.from({ length: 6 }, spawnBall); pressure = 0; particles = []; venting = false; ventTimer = 0; }
+  reset();
+
+  function vent(){
+    venting = true; ventTimer = 0;
+    api.onCollide(2.2, 3);
+    for(const b of balls){ b.vy -= rand(8, 14); b.vx += rand(-3, 3); }
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const b = chamberBounds();
+
+    if(!venting){
+      for(const ball of balls){
+        ball.x += ball.vx * steps; ball.y += ball.vy * steps;
+        let hit = false;
+        if(ball.x < b.x0 + ball.r){ ball.x = b.x0 + ball.r; ball.vx *= -1; hit = true; }
+        if(ball.x > b.x1 - ball.r){ ball.x = b.x1 - ball.r; ball.vx *= -1; hit = true; }
+        if(ball.y < b.y0 + ball.r){ ball.y = b.y0 + ball.r; ball.vy *= -1; hit = true; }
+        if(ball.y > b.y1 - ball.r){ ball.y = b.y1 - ball.r; ball.vy *= -1; hit = true; }
+        if(hit){
+          pressure = Math.min(1, pressure + 0.012);
+          api.onCollide(0.4, Math.floor(ball.hue / 45));
+        }
+      }
+      if(pressure >= 1) vent();
+    } else {
+      ventTimer += steps;
+      for(const ball of balls){
+        ball.vy += 0.2 * steps;
+        ball.x += ball.vx * steps; ball.y += ball.vy * steps;
+      }
+      if(ventTimer > 90) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.02 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const b = chamberBounds();
+
+    const heat = venting ? 1 : pressure;
+    const meterColor = `hsl(${lerp(50, 0, heat)},90%,55%)`;
+    ctx.strokeStyle = meterColor; ctx.lineWidth = 6;
+    ctx.shadowColor = meterColor; ctx.shadowBlur = 14;
+    ctx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+    ctx.shadowBlur = 0;
+
+    for(const ball of balls){
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+      ctx.fillStyle = `hsl(${ball.hue},100%,62%)`;
+      ctx.shadowColor = `hsl(${ball.hue},100%,62%)`; ctx.shadowBlur = venting ? 14 : 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(venting ? "VENTING!" : `PRESSURE ${Math.round(pressure * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: tower collapse ---------------- */
+
+function createTowerCollapseSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const N = 10;
+  let blocks = [], wrecker, particles = [], collapsed = false, resetTimer = 0;
+
+  function reset(){
+    const w = canvas.width, h = canvas.height;
+    const blockH = h * 0.06, blockW = w * 0.22;
+    blocks = [];
+    for(let i = 0; i < N; i++){
+      blocks.push({ x: w / 2, y: h * 0.88 - i * blockH, w: blockW, h: blockH * 0.92, va: 0, angle: 0, alive: true, hue: (i * 30) % 360 });
+    }
+    wrecker = { angle: -1.1, va: 0.05, len: h * 0.5, anchorX: w * 0.15, anchorY: h * 0.1 };
+    particles = []; collapsed = false; resetTimer = 0;
+  }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    wrecker.angle += wrecker.va * steps;
+    if(wrecker.angle > 1.1 || wrecker.angle < -1.1) wrecker.va *= -1;
+
+    const bx = wrecker.anchorX + Math.sin(wrecker.angle) * wrecker.len;
+    const by = wrecker.anchorY + Math.cos(wrecker.angle) * wrecker.len;
+
+    let anyAlive = false;
+    for(const b of blocks){
+      if(!b.alive) continue;
+      anyAlive = true;
+
+      const dx = bx - b.x, dy = by - b.y;
+      const dist = Math.hypot(dx, dy);
+      if(dist < b.w * 0.6 && Math.abs(b.angle) < 0.05 && b.va === 0){
+        b.va = 0.05 * Math.sign(dx || 1);
+        api.onCollide(1.2, Math.floor(b.hue / 45));
+      }
+
+      if(Math.abs(b.va) > 0.0001 || Math.abs(b.angle) > 0.001){
+        b.angle += b.va * steps;
+        b.va += 0.01 * steps;
+        b.y += Math.abs(b.angle) * 4 * steps;
+        b.x += b.va * 10 * steps;
+        if(b.y > canvas.height + 50) b.alive = false;
+      }
+    }
+
+    if(!anyAlive && !collapsed){
+      const c = { x: canvas.width / 2, y: canvas.height * 0.7 };
+      for(let i = 0; i < 40; i++){
+        const a = rand(0, TAU), s = rand(2, 8);
+        particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 3, life: 1, hue: rand(0, 360) });
+      }
+      api.onCollide(2, 6);
+      collapsed = true;
+    }
+
+    if(collapsed){
+      resetTimer += steps;
+      if(resetTimer > 70) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.vy += 0.15 * steps;
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.018 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const bx = wrecker.anchorX + Math.sin(wrecker.angle) * wrecker.len;
+    const by = wrecker.anchorY + Math.cos(wrecker.angle) * wrecker.len;
+    ctx.strokeStyle = "rgba(200,200,220,0.5)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(wrecker.anchorX, wrecker.anchorY); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.beginPath(); ctx.arc(bx, by, 14, 0, TAU);
+    ctx.fillStyle = "#9aa5b1"; ctx.fill();
+
+    for(const b of blocks){
+      if(!b.alive) continue;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.angle);
+      ctx.fillStyle = `hsl(${b.hue},75%,58%)`;
+      ctx.shadowColor = `hsl(${b.hue},75%,58%)`; ctx.shadowBlur = 8;
+      ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+      ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#e8f0ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(collapsed ? "TOWER DOWN!" : `BLOCKS ${blocks.filter(b => b.alive).length}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: water tank overflow ---------------- */
+
+function createWaterTankSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let drops = [], level = 0, particles = [], overflowing = false, resetTimer = 0, dropTimer = 0;
+
+  function tank(){
+    const w = canvas.width, h = canvas.height;
+    return { x0: w * 0.3, x1: w * 0.7, y0: h * 0.2, y1: h * 0.85 };
+  }
+  function reset(){ drops = []; level = 0; particles = []; overflowing = false; resetTimer = 0; dropTimer = 0; }
+  reset();
+
+  function spawnDrop(){
+    const t = tank();
+    drops.push({ x: rand(t.x0 + 10, t.x1 - 10), y: 0, vy: rand(3, 5) });
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const t = tank();
+    const waterY = t.y1 - level * (t.y1 - t.y0);
+
+    if(!overflowing){
+      dropTimer -= steps;
+      if(dropTimer <= 0){ spawnDrop(); dropTimer = rand(15, 30); }
+
+      for(let i = drops.length - 1; i >= 0; i--){
+        const d = drops[i];
+        d.y += d.vy * steps;
+        if(d.y >= waterY){
+          level = Math.min(1, level + 0.018);
+          api.onCollide(0.5, Math.floor(rand(0, 8)));
+          for(let k = 0; k < 6; k++){
+            const a = rand(0, TAU), s = rand(1, 3);
+            particles.push({ x: d.x, y: waterY, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, life: 1, hue: 200 });
+          }
+          drops.splice(i, 1);
+        }
+      }
+      if(level >= 1){ overflowing = true; api.onCollide(2, 3); }
+    } else {
+      resetTimer += steps;
+      if(resetTimer % 6 < 1) particles.push({ x: rand(t.x0, t.x1), y: t.y0, vx: rand(-1, 1), vy: rand(3, 6), life: 1, hue: 200 });
+      if(resetTimer > 90) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.vy += 0.08 * steps;
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.012 * steps;
+      if(p.life <= 0 || p.y > canvas.height + 30) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const t = tank();
+    const waterY = t.y1 - level * (t.y1 - t.y0);
+
+    ctx.strokeStyle = "rgba(200,220,255,0.6)"; ctx.lineWidth = 4;
+    ctx.strokeRect(t.x0, t.y0, t.x1 - t.x0, t.y1 - t.y0);
+
+    ctx.fillStyle = "rgba(70,150,255,0.4)";
+    ctx.fillRect(t.x0, waterY, t.x1 - t.x0, t.y1 - waterY);
+
+    for(const d of drops){
+      ctx.beginPath(); ctx.arc(d.x, d.y, 4, 0, TAU);
+      ctx.fillStyle = "#8fd0ff"; ctx.fill();
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},90%,70%,${p.life})`;
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#cfe8ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(overflowing ? "OVERFLOW!" : `FILLED ${Math.round(level * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: orbit decay impact ---------------- */
+
+function createOrbitDecaySim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let sat, particles = [], impacted = false, resetTimer = 0;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function planetR(){ return Math.min(canvas.width, canvas.height) * 0.1; }
+
+  function reset(){
+    sat = { angle: 0, radius: Math.min(canvas.width, canvas.height) * 0.4, speed: 0.02, hue: rand(0, 360) };
+    particles = []; impacted = false; resetTimer = 0;
+  }
+  reset();
+
+  function impact(){
+    const c = center();
+    const x = c.x + Math.cos(sat.angle) * planetR(), y = c.y + Math.sin(sat.angle) * planetR();
+    for(let i = 0; i < 45; i++){
+      const a = rand(0, TAU), s = rand(2, 8);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 60) });
+    }
+    api.onCollide(2.2, 6);
+    impacted = true;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    if(!impacted){
+      sat.angle += sat.speed * steps;
+      sat.radius -= 0.15 * steps;
+      if(sat.radius < planetR() + 8) impact();
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 70) reset();
+    }
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.016 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.18)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center(), r = planetR();
+
+    const grad = ctx.createRadialGradient(c.x - r * 0.3, c.y - r * 0.3, r * 0.1, c.x, c.y, r);
+    grad.addColorStop(0, "#9adfff"); grad.addColorStop(1, "#2a5fae");
+    ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, TAU); ctx.fillStyle = grad; ctx.fill();
+
+    if(!impacted){
+      ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(c.x, c.y, sat.radius, 0, TAU); ctx.stroke();
+      const x = c.x + Math.cos(sat.angle) * sat.radius, y = c.y + Math.sin(sat.angle) * sat.radius;
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, TAU);
+      ctx.fillStyle = `hsl(${sat.hue},90%,65%)`;
+      ctx.shadowColor = `hsl(${sat.hue},90%,65%)`; ctx.shadowBlur = 12;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,60%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,60%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#cfe8ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(impacted ? "IMPACT!" : `ORBIT ${Math.round(sat.radius / (Math.min(canvas.width, canvas.height) * 0.4) * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: bomb defuse race ---------------- */
+
+function createDefuseSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const WIRES = 6;
+  let wires = [], ball, timeLeft = 0, totalTime = 0, outcome = null, resetTimer = 0;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function R(){ return Math.min(canvas.width, canvas.height) * 0.3; }
+
+  function reset(){
+    wires = Array.from({ length: WIRES }, (_, i) => ({ cut: false, hue: (i * 50) % 360 }));
+    const a = rand(0, TAU), s = rand(3, 5);
+    ball = { x: 0, y: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 8 };
+    totalTime = 600; timeLeft = totalTime; outcome = null; resetTimer = 0;
+  }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const r = R();
+
+    if(!outcome){
+      timeLeft -= steps;
+      ball.x += ball.vx * steps; ball.y += ball.vy * steps;
+      const dist = Math.hypot(ball.x, ball.y);
+      if(dist > r - ball.r){
+        const nx = ball.x / dist, ny = ball.y / dist;
+        ball.x = nx * (r - ball.r); ball.y = ny * (r - ball.r);
+        const dot = ball.vx * nx + ball.vy * ny;
+        ball.vx -= 2 * dot * nx; ball.vy -= 2 * dot * ny;
+        const remaining = wires.filter(w => !w.cut);
+        if(remaining.length > 0){
+          const w = remaining[Math.floor(rand(0, remaining.length))];
+          w.cut = true;
+          api.onCollide(1, Math.floor(w.hue / 45));
+        }
+      }
+
+      if(wires.every(w => w.cut)){ outcome = "defused"; api.onCollide(2, 7); }
+      else if(timeLeft <= 0){ outcome = "boom"; api.onCollide(2.4, 6); }
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 70) reset();
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center(), r = R();
+
+    ctx.save(); ctx.translate(c.x, c.y);
+    for(let i = 0; i < WIRES; i++){
+      const w = wires[i];
+      const ang = -Math.PI * 0.7 + (i / (WIRES - 1)) * Math.PI * 1.4;
+      const x1 = Math.cos(ang) * r * 0.3, y1 = Math.sin(ang) * r * 0.3;
+      const x2 = Math.cos(ang) * r, y2 = Math.sin(ang) * r;
+      ctx.strokeStyle = w.cut ? "rgba(120,120,120,0.3)" : `hsl(${w.hue},85%,60%)`;
+      ctx.lineWidth = 4;
+      if(!w.cut){ ctx.shadowColor = `hsl(${w.hue},85%,60%)`; ctx.shadowBlur = 8; }
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    if(!outcome){
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+      ctx.fillStyle = "#fff"; ctx.shadowColor = "#fff"; ctx.shadowBlur = 12; ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    const timePct = clamp(timeLeft / totalTime, 0, 1);
+    ctx.fillStyle = timePct < 0.25 ? "#ef4444" : "#e2e8f0";
+    ctx.textAlign = "center";
+    ctx.font = "bold 30px 'Orbitron', sans-serif";
+    ctx.fillText(outcome ? (outcome === "defused" ? "DEFUSED" : "BOOM") : Math.ceil(timeLeft / 60) + "s", c.x, c.y + 12);
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = "#ffd8d8";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(`WIRES CUT ${wires.filter(w => w.cut).length}/${WIRES}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: volcano eruption ---------------- */
+
+function createVolcanoSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let bubbles = [], pressure = 0, erupting = false, particles = [], resetTimer = 0;
+
+  function coneBase(){ const w = canvas.width, h = canvas.height; return { x0: w * 0.25, x1: w * 0.75, yBase: h * 0.85, yTip: h * 0.35 }; }
+  function reset(){ bubbles = []; pressure = 0; erupting = false; particles = []; resetTimer = 0; }
+  reset();
+
+  function spawnBubble(){
+    const c = coneBase();
+    return { x: rand(c.x0 + c.x0 * 0.1, c.x1 - c.x0 * 0.1), y: c.yBase - 10, vy: -rand(0.4, 1) };
+  }
+
+  function erupt(){
+    erupting = true;
+    api.onCollide(2.4, 3);
+    const c = coneBase();
+    for(let i = 0; i < 60; i++){
+      const a = rand(-1.3, -1.8), s = rand(6, 16);
+      particles.push({ x: (c.x0 + c.x1) / 2, y: c.yTip, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 50) });
+    }
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const c = coneBase();
+
+    if(!erupting){
+      if(Math.random() < 0.15 * steps && bubbles.length < 25) bubbles.push(spawnBubble());
+      for(const b of bubbles) b.y += b.vy * steps;
+      bubbles = bubbles.filter(b => b.y > c.yTip);
+      pressure = Math.min(1, pressure + 0.0025 * steps);
+      if(pressure >= 1) erupt();
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 90) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.vy += 0.14 * steps;
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.012 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = coneBase();
+
+    ctx.beginPath();
+    ctx.moveTo(c.x0, c.yBase);
+    ctx.lineTo((c.x0 + c.x1) / 2, c.yTip);
+    ctx.lineTo(c.x1, c.yBase);
+    ctx.closePath();
+    ctx.fillStyle = `hsl(${lerp(280, 0, pressure)},50%,${20 + pressure * 10}%)`;
+    ctx.fill();
+
+    if(!erupting){
+      for(const b of bubbles){
+        ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, TAU);
+        ctx.fillStyle = `hsl(${lerp(50, 10, pressure)},90%,55%)`;
+        ctx.fill();
+      }
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,55%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,55%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffd9b3";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(erupting ? "ERUPTION!" : `PRESSURE ${Math.round(pressure * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: comet impact ---------------- */
+
+function createCometImpactSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let comet, particles = [], impacted = false, resetTimer = 0;
+
+  function target(){ return { x: canvas.width / 2, y: canvas.height * 0.8 }; }
+  function reset(){ comet = { x: -40, y: canvas.height * 0.15, t: 0, hue: rand(15, 40) }; particles = []; impacted = false; resetTimer = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    const tgt = target();
+
+    if(!impacted){
+      comet.t += 0.006 * steps;
+      comet.x = lerp(-40, tgt.x, comet.t);
+      comet.y = lerp(canvas.height * 0.15, tgt.y, comet.t * comet.t);
+      if(comet.t >= 1){
+        impacted = true;
+        for(let i = 0; i < 55; i++){
+          const a = rand(0, TAU), s = rand(3, 11);
+          particles.push({ x: tgt.x, y: tgt.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(10, 50) });
+        }
+        api.onCollide(2.4, 6);
+      }
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 75) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vy += 0.08 * steps;
+      p.life -= 0.015 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const tgt = target();
+
+    ctx.beginPath(); ctx.arc(tgt.x, tgt.y, Math.min(canvas.width, canvas.height) * 0.14, 0, TAU);
+    ctx.fillStyle = "#3a2a1a"; ctx.fill();
+
+    if(!impacted){
+      ctx.beginPath(); ctx.arc(comet.x, comet.y, 8, 0, TAU);
+      ctx.fillStyle = `hsl(${comet.hue},90%,65%)`;
+      ctx.shadowColor = `hsl(${comet.hue},90%,65%)`; ctx.shadowBlur = 16;
+      ctx.fill(); ctx.shadowBlur = 0;
+
+      ctx.strokeStyle = `hsla(${comet.hue},90%,65%,0.4)`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(comet.x, comet.y); ctx.lineTo(comet.x - 40, comet.y - 16); ctx.stroke();
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,55%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,55%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffe0c2";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(impacted ? "IMPACT!" : `APPROACHING ${Math.round(comet.t * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: balloon inflate pop ---------------- */
+
+function createBalloonSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let r, ball, particles = [], popped = false, resetTimer = 0, hue;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height * 0.55 }; }
+  function maxR(){ return Math.min(canvas.width, canvas.height) * 0.32; }
+
+  function reset(){
+    r = 20; hue = rand(0, 360);
+    const a = rand(0, TAU), s = rand(3, 5);
+    ball = { x: 0, y: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s };
+    particles = []; popped = false; resetTimer = 0;
+  }
+  reset();
+
+  function pop(){
+    const c = center();
+    for(let i = 0; i < 50; i++){
+      const a = rand(0, TAU), s = rand(3, 10);
+      particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 360) });
+    }
+    api.onCollide(2.2, 5);
+    popped = true;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    if(!popped){
+      ball.x += ball.vx * steps; ball.y += ball.vy * steps;
+      const dist = Math.hypot(ball.x, ball.y);
+      if(dist > r - 6){
+        const nx = ball.x / dist, ny = ball.y / dist;
+        ball.x = nx * (r - 6); ball.y = ny * (r - 6);
+        const dot = ball.vx * nx + ball.vy * ny;
+        ball.vx -= 2 * dot * nx; ball.vy -= 2 * dot * ny;
+        r += 6;
+        api.onCollide(clamp(r / maxR(), 0.3, 1.6), Math.floor(hue / 45));
+        if(r >= maxR()) pop();
+      }
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 65) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.018 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+
+    if(!popped){
+      ctx.save(); ctx.translate(c.x, c.y);
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU);
+      ctx.fillStyle = `hsl(${hue},85%,60%)`;
+      ctx.shadowColor = `hsl(${hue},85%,60%)`; ctx.shadowBlur = 20;
+      ctx.fill(); ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, 6, 0, TAU);
+      ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.restore();
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(popped ? "POP!" : `SIZE ${Math.round(r / maxR() * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: hourglass flip ---------------- */
+
+function createHourglassSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let grains = [], flipped = false, flashTimer = 0;
+
+  function bounds(){
+    const w = canvas.width, h = canvas.height;
+    return { cx: w / 2, topY: h * 0.18, midY: h * 0.5, botY: h * 0.82, halfW: w * 0.16 };
+  }
+  function reset(){ grains = Array.from({ length: 60 }, () => ({ t: rand(0, 1), x: rand(-1, 1) * 0.6, phase: 0 })); flipped = false; flashTimer = 0; }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    let allDown = true;
+
+    for(const g of grains){
+      if(g.phase === 0){
+        g.t += 0.006 * steps;
+        if(g.t >= 1){ g.phase = 1; g.t = 0; g.x = rand(-1, 1) * 0.8; }
+        else allDown = false;
+      }
+    }
+
+    if(allDown && !flipped){ flipped = true; flashTimer = 1; api.onCollide(2, 5); }
+    if(flashTimer > 0){
+      flashTimer -= 0.02 * steps;
+      if(flashTimer <= 0){
+        for(const g of grains){ g.phase = 0; g.t = 0; }
+        flipped = false;
+      }
+    }
+
+    if(Math.random() < 0.3 * steps) api.onCollide(0.15, Math.floor(rand(0, 8)));
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const b = bounds();
+
+    ctx.strokeStyle = "rgba(255,220,150,0.6)"; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(b.cx - b.halfW, b.topY); ctx.lineTo(b.cx + b.halfW, b.topY);
+    ctx.lineTo(b.cx, b.midY); ctx.lineTo(b.cx + b.halfW, b.botY);
+    ctx.moveTo(b.cx - b.halfW, b.botY); ctx.lineTo(b.cx, b.midY); ctx.lineTo(b.cx - b.halfW, b.topY);
+    ctx.stroke();
+
+    for(const g of grains){
+      let x, y;
+      if(g.phase === 0){
+        y = lerp(b.topY + 10, b.midY, g.t);
+        const w = lerp(b.halfW * 0.8, 2, g.t);
+        x = b.cx + g.x * w;
+      } else {
+        y = lerp(b.midY, b.botY - 10, Math.min(1, g.t + 0.3));
+        const w = lerp(2, b.halfW * 0.8, Math.min(1, g.t + 0.3));
+        x = b.cx + g.x * w;
+      }
+      ctx.fillStyle = "#ffd580";
+      ctx.fillRect(x - 2, y - 2, 4, 4);
+    }
+
+    if(flashTimer > 0){
+      ctx.fillStyle = `rgba(255,230,180,${flashTimer * 0.4})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.fillStyle = "#ffe6b3";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(flipped ? "TIME'S UP — FLIPPING" : "HOURGLASS RUNNING", 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: reactor meltdown ---------------- */
+
+function createReactorSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  let orbiters = [], heat = 0, particles = [], meltdown = false, resetTimer = 0;
+
+  function center(){ return { x: canvas.width / 2, y: canvas.height / 2 }; }
+  function spawnOrbiter(){ return { angle: rand(0, TAU), radius: rand(60, 140), speed: rand(0.4, 0.9), hue: rand(160, 220), consumed: false }; }
+  function reset(){ orbiters = Array.from({ length: 8 }, spawnOrbiter); heat = 0; particles = []; meltdown = false; resetTimer = 0; }
+  reset();
+
+  function melt(){
+    const c = center();
+    for(let i = 0; i < 65; i++){
+      const a = rand(0, TAU), s = rand(3, 12);
+      particles.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 60) });
+    }
+    api.onCollide(2.4, 7);
+    meltdown = true;
+  }
+
+  function update(dt){
+    const steps = dt * 60;
+    const c = center();
+
+    if(!meltdown){
+      for(const o of orbiters){
+        o.angle += o.speed * 0.02 * steps;
+        const x = c.x + Math.cos(o.angle) * o.radius, y = c.y + Math.sin(o.angle) * o.radius;
+        if(Math.hypot(x - c.x, y - c.y) < 40 && !o.consumed){
+          o.consumed = true;
+          heat = Math.min(1, heat + 0.13);
+          api.onCollide(0.8, Math.floor(o.hue / 45));
+        }
+      }
+      orbiters = orbiters.filter(o => !o.consumed);
+      if(orbiters.length < 8 && Math.random() < 0.02 * steps) orbiters.push(spawnOrbiter());
+      if(heat >= 1) melt();
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 80) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.vx *= 0.96; p.vy *= 0.96;
+      p.life -= 0.014 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(4,4,10,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = center();
+
+    const coreColor = `hsl(${lerp(190, 0, heat)},95%,${55 + heat * 15}%)`;
+    const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 50 + heat * 20);
+    grad.addColorStop(0, coreColor); grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(c.x, c.y, 50 + heat * 20, 0, TAU); ctx.fill();
+
+    if(!meltdown){
+      for(const o of orbiters){
+        const x = c.x + Math.cos(o.angle) * o.radius, y = c.y + Math.sin(o.angle) * o.radius;
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU);
+        ctx.fillStyle = `hsl(${o.hue},90%,65%)`;
+        ctx.shadowColor = `hsl(${o.hue},90%,65%)`; ctx.shadowBlur = 10;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,55%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,55%,${p.life})`; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#ffe0e0";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(meltdown ? "MELTDOWN!" : `HEAT ${Math.round(heat * 100)}%`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concept: zipper unravel ---------------- */
+
+function createZipperSim(canvas, api){
+  const ctx = canvas.getContext("2d");
+  const N = 24;
+  let teeth = [], ball, particles = [], done = false, resetTimer = 0;
+
+  function reset(){
+    const w = canvas.width, h = canvas.height;
+    teeth = Array.from({ length: N }, (_, i) => ({ x: w * 0.1 + w * 0.8 * (i / (N - 1)), y: h * 0.5, open: false, hue: (i * 15) % 360 }));
+    const a = rand(0, TAU), s = rand(3, 5);
+    ball = { x: w * 0.1, y: h * 0.5, vx: Math.abs(Math.cos(a)) * s + 2, vy: Math.sin(a) * 1.5, idx: 0 };
+    particles = []; done = false; resetTimer = 0;
+  }
+  reset();
+
+  function update(dt){
+    const steps = dt * 60;
+    if(!done){
+      ball.x += ball.vx * steps;
+      ball.y = teeth[0].y + Math.sin(ball.x * 0.02) * 10;
+
+      while(ball.idx < teeth.length && ball.x > teeth[ball.idx].x){
+        teeth[ball.idx].open = true;
+        api.onCollide(0.5, Math.floor(teeth[ball.idx].hue / 45));
+        ball.idx++;
+      }
+
+      if(ball.idx >= teeth.length){
+        const last = teeth[teeth.length - 1];
+        for(let i = 0; i < 40; i++){
+          const a = rand(0, TAU), s = rand(2, 8);
+          particles.push({ x: last.x, y: last.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: rand(0, 360) });
+        }
+        api.onCollide(2, 6);
+        done = true;
+      }
+    } else {
+      resetTimer += steps;
+      if(resetTimer > 65) reset();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--){
+      const p = particles[i];
+      p.x += p.vx * steps; p.y += p.vy * steps;
+      p.life -= 0.02 * steps;
+      if(p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw(){
+    ctx.fillStyle = "rgba(8,8,14,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(const t of teeth){
+      const offset = t.open ? 18 : 0;
+      ctx.fillStyle = t.open ? `hsl(${t.hue},80%,55%)` : "rgba(200,200,220,0.5)";
+      ctx.fillRect(t.x - 4, t.y - 6 - offset, 8, 14);
+      ctx.fillRect(t.x - 4, t.y - 6 + offset, 8, 14);
+    }
+
+    if(!done){
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, 7, 0, TAU);
+      ctx.fillStyle = "#fff"; ctx.shadowColor = "#fff"; ctx.shadowBlur = 14; ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    for(const p of particles){
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3 * p.life, 0, TAU);
+      ctx.fillStyle = `hsla(${p.hue},100%,65%,${p.life})`;
+      ctx.shadowColor = `hsla(${p.hue},100%,65%,${p.life})`; ctx.shadowBlur = 8;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#e8e0ff";
+    ctx.font = "16px 'JetBrains Mono', monospace";
+    ctx.fillText(done ? "UNZIPPED!" : `TEETH ${teeth.filter(t => t.open).length}/${N}`, 20, 30);
+  }
+
+  return { update, draw, reset };
+}
+
+/* ---------------- concepts registry ---------------- */
+
+const CONCEPTS = [
+  { id: "ring", name: "Ring Escape", accent: "#38f2ff", kind: "ring",
+    desc: "A rotating gate guards four gaps. Slip through and the swarm grows.", create: createRingEscapeSim },
+  { id: "shatter", name: "Shatter Rings", accent: "#ff8a3d", kind: "shatter",
+    desc: "Break each ring at its rotating seam. Every break doubles the balls.", create: createShatterRingsSim },
+  { id: "multiplier", name: "Multiplier Cascade", accent: "#b57bff", kind: "multiplier",
+    desc: "Thread the drifting gates on the way down to multiply your count.", create: createMultiplierSim },
+  { id: "polygon", name: "Polygon Erosion", accent: "#7CFFB2", kind: "polygon",
+    desc: "Every bounce costs the cage a side. Watch the number wear to zero.", create: createPolygonSim },
+  { id: "swarm", name: "Trail Swarm", accent: "#ffd166", kind: "swarm",
+    desc: "A weightless drift of glowing trails, bouncing forever.", create: createSwarmSim },
+  { id: "plinko", name: "Plinko Pegs", accent: "#60a5fa", kind: "plinko",
+    desc: "Balls tumble through a peg field and stack into a live bell curve.", create: createPlinkoSim },
+  { id: "orbit", name: "Orbit Well", accent: "#f472b6", kind: "orbit",
+    desc: "Nine bodies loop a bright core, flaring each time they swing close.", create: createOrbitSim },
+  { id: "vortex", name: "Spiral Vortex", accent: "#2dd4bf", kind: "vortex",
+    desc: "Orbs spiral into a drain, speeding up as the radius tightens.", create: createVortexSim },
+  { id: "merge", name: "Merge Blobs", accent: "#fb7185", kind: "merge",
+    desc: "Touching blobs fuse into one — until they grow too big and burst.", create: createMergeSim },
+  { id: "piston", name: "Piston Squeeze", accent: "#ef4444", kind: "piston",
+    desc: "Walls close in on a crowd of balls, then release in one big burst.", create: createPistonSim },
+  { id: "pendulum", name: "Double Pendulum", accent: "#a3e635", kind: "pendulum",
+    desc: "Near-identical pendulums drift apart into pure deterministic chaos.", create: createPendulumSim },
+  { id: "gravity", name: "Gravity Wells", accent: "#facc15", kind: "gravity",
+    desc: "Three cores pull a field of particles into looping, wrapping orbits.", create: createGravityWellsSim },
+  { id: "kaleidoscope", name: "Kaleidoscope", accent: "#e879f9", kind: "kaleidoscope",
+    desc: "A handful of bouncing shards mirrored into a spinning mandala.", create: createKaleidoscopeSim },
+  { id: "confetti", name: "Confetti Storm", accent: "#fb923c", kind: "confetti",
+    desc: "Tumbling paper pieces fall and pile up in a colorful drift.", create: createConfettiSim },
+  { id: "ripple", name: "Ripple Grid", accent: "#38bdf8", kind: "ripple",
+    desc: "A field of dots that lights up in rings from randomly dropped pings.", create: createRippleSim },
+  { id: "fireworks", name: "Fireworks Show", accent: "#f43f5e", kind: "fireworks",
+    desc: "Rockets climb and burst into glowing, gravity-fed shells.", create: createFireworksSim },
+  { id: "lightning", name: "Lightning Storm", accent: "#818cf8", kind: "lightning",
+    desc: "Small strikes charge a meter until one mega-bolt splits the sky.", create: createLightningSim },
+  { id: "meteor", name: "Meteor Shower", accent: "#94a3b8", kind: "meteor",
+    desc: "Streaking meteors fall and shatter into sparks on impact.", create: createMeteorSim },
+  { id: "helix", name: "DNA Helix", accent: "#34d399", kind: "helix",
+    desc: "Two glowing strands spiral around each other endlessly.", create: createHelixSim },
+  { id: "starfield", name: "Starfield Warp", accent: "#22d3ee", kind: "starfield",
+    desc: "Streaking stars rush past as if flying through hyperspace.", create: createStarfieldSim },
+  { id: "breakout", name: "Breakout Bricks", accent: "#f87171", kind: "breakout",
+    desc: "A ball chips away at a colorful brick wall, arcade-style.", create: createBreakoutSim },
+  { id: "bubbles", name: "Rising Bubbles", accent: "#7dd3fc", kind: "bubbles",
+    desc: "Soft bubbles drift upward and pop with a tiny sparkle.", create: createBubblesSim },
+  { id: "spirograph", name: "Spirograph Painter", accent: "#c4b5fd", kind: "spirograph",
+    desc: "A pen traces looping curves into a growing generative artwork.", create: createSpirographSim },
+  { id: "wavebars", name: "Pulse Equalizer", accent: "#2dd4ea", kind: "wavebars",
+    desc: "Radial bars and a glowing core that pulse to your uploaded music.", create: createWaveBarsSim },
+  { id: "tunnel", name: "Neon Tunnel", accent: "#a5b4fc", kind: "tunnel",
+    desc: "Rings and squares race toward you down a hypnotic tunnel.", create: createTunnelSim },
+  { id: "countdown", name: "Countdown Core", accent: "#fb7185", kind: "countdown",
+    desc: "A ball chips a countdown down to zero, then the core detonates.", create: createCountdownCoreSim },
+  { id: "fuseline", name: "Fuse Line", accent: "#fb923c", kind: "fuseline",
+    desc: "A spark races down a winding fuse toward a waiting bomb.", create: createFuseLineSim },
+  { id: "meter", name: "Meter Overload", accent: "#4ade80", kind: "meter",
+    desc: "Every bounce fills the ring meter until it overloads and blows.", create: createMeterOverloadSim },
+  { id: "domino", name: "Chain Domino", accent: "#facc15", kind: "domino",
+    desc: "One tip starts a cascade that topples every domino in line.", create: createDominoSim },
+  { id: "blackhole", name: "Black Hole Countdown", accent: "#a78bfa", kind: "blackhole",
+    desc: "A growing black hole swallows orbiting stars one by one.", create: createBlackHoleSim },
+  { id: "valve", name: "Pressure Valve", accent: "#f97316", kind: "valve",
+    desc: "Balls build pressure in a sealed chamber until the valve blows.", create: createPressureValveSim },
+  { id: "tower", name: "Tower Collapse", accent: "#eab308", kind: "tower",
+    desc: "A wrecking ball swings until the whole tower comes down.", create: createTowerCollapseSim },
+  { id: "watertank", name: "Water Tank Overflow", accent: "#38bdf8", kind: "watertank",
+    desc: "Drops fill a tank drop by drop until it finally overflows.", create: createWaterTankSim },
+  { id: "orbitdecay", name: "Orbit Decay Impact", accent: "#60a5fa", kind: "orbitdecay",
+    desc: "A decaying orbit spirals closer and closer to a fiery impact.", create: createOrbitDecaySim },
+  { id: "defuse", name: "Bomb Defuse Race", accent: "#ef4444", kind: "defuse",
+    desc: "Cut every wire before the timer runs out — which happens first?", create: createDefuseSim },
+  { id: "volcano", name: "Volcano Eruption", accent: "#f43f5e", kind: "volcano",
+    desc: "Pressure builds beneath a volcano until it finally erupts.", create: createVolcanoSim },
+  { id: "comet", name: "Comet Impact", accent: "#fbbf24", kind: "comet",
+    desc: "A comet closes in on a lonely planet for one final impact.", create: createCometImpactSim },
+  { id: "balloon", name: "Balloon Inflate Pop", accent: "#f472b6", kind: "balloon",
+    desc: "A balloon grows with every bounce until it can't take any more.", create: createBalloonSim },
+  { id: "hourglass", name: "Hourglass Flip", accent: "#fcd34d", kind: "hourglass",
+    desc: "Sand runs out, time's up, and the hourglass flips itself again.", create: createHourglassSim },
+  { id: "reactor", name: "Reactor Meltdown", accent: "#f87171", kind: "reactor",
+    desc: "A glowing core absorbs orbiters and heats up toward meltdown.", create: createReactorSim },
+  { id: "zipper", name: "Zipper Unravel", accent: "#c084fc", kind: "zipper",
+    desc: "A ball rides the seam, unzipping every tooth until the end.", create: createZipperSim }
+];
+
+/* ---------------- home screen previews ---------------- */
+
+function startPreview(canvas, kind, accent){
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  let angle = 0;
+  const dotCount = kind === "swarm" ? 6 : 3;
+  const dots = Array.from({ length: dotCount }, () => ({
+    x: rand(w * 0.3, w * 0.7), y: rand(h * 0.3, h * 0.7),
+    vx: rand(-1.4, 1.4), vy: rand(-1.4, 1.4)
+  }));
+
+  function frame(){
+    if(!canvas.isConnected) return;
+    ctx.fillStyle = "rgba(7,7,12,0.25)";
+    ctx.fillRect(0, 0, w, h);
+    angle += 0.01;
+
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.strokeStyle = accent; ctx.fillStyle = accent; ctx.lineWidth = 3;
+    ctx.shadowColor = accent; ctx.shadowBlur = 8;
+
+    if(kind === "ring"){
+      ctx.rotate(angle);
+      for(let i = 0; i < 4; i++){
+        ctx.beginPath();
+        ctx.arc(0, 0, h * 0.32, i * Math.PI / 2 + 0.3, (i + 1) * Math.PI / 2 - 0.3);
+        ctx.stroke();
+      }
+    } else if(kind === "shatter"){
+      for(let r = h * 0.12, k = 0; r < h * 0.34; r += h * 0.08, k++){
+        ctx.beginPath();
+        ctx.arc(0, 0, r, angle + k, angle + k + Math.PI * 1.5);
+        ctx.stroke();
+      }
+    } else if(kind === "multiplier"){
+      for(let i = 0; i < 3; i++){
+        const y = -h * 0.25 + i * h * 0.22;
+        const gx = Math.sin(angle * 2 + i) * w * 0.12;
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.32, y); ctx.lineTo(gx - 16, y);
+        ctx.moveTo(gx + 16, y); ctx.lineTo(w * 0.32, y);
+        ctx.stroke();
+      }
+    } else if(kind === "polygon"){
+      ctx.rotate(angle);
+      const seg = 16;
+      for(let i = 0; i < seg; i++){
+        if(i % 5 === 0) continue;
+        const a0 = i * TAU / seg + 0.02, a1 = (i + 1) * TAU / seg - 0.02;
+        ctx.beginPath();
+        ctx.arc(0, 0, h * 0.3, a0, a1);
+        ctx.stroke();
+      }
+    } else if(kind === "plinko"){
+      for(let row = 0; row < 3; row++){
+        for(let col = -2; col <= 2; col++){
+          const x = col * (w * 0.11) + (row % 2 ? w * 0.055 : 0);
+          const y = -h * 0.2 + row * h * 0.18;
+          ctx.beginPath(); ctx.arc(x, y, 3, 0, TAU); ctx.fill();
+        }
+      }
+    } else if(kind === "orbit"){
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, 0, h * 0.28, h * 0.16, angle, 0, TAU); ctx.stroke();
+    } else if(kind === "vortex"){
+      ctx.beginPath();
+      for(let a = 0; a < TAU * 2; a += 0.15){
+        const r = (a / (TAU * 2)) * h * 0.32;
+        const x = Math.cos(a + angle * 2) * r, y = Math.sin(a + angle * 2) * r;
+        if(a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    } else if(kind === "merge"){
+      const pulse = 10 + Math.sin(angle * 3) * 4;
+      ctx.beginPath(); ctx.arc(-12, 0, pulse, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(12, 0, pulse, 0, TAU); ctx.stroke();
+    } else if(kind === "piston"){
+      const sq = h * 0.18 + Math.sin(angle * 2) * h * 0.08;
+      ctx.strokeRect(-sq, -sq, sq * 2, sq * 2);
+    } else if(kind === "pendulum"){
+      const a1 = Math.sin(angle * 2) * 1.2;
+      const a2 = Math.cos(angle * 1.6) * 1.4;
+      const x1 = Math.sin(a1) * h * 0.18, y1 = Math.cos(a1) * h * 0.18 - h * 0.12;
+      const x2 = x1 + Math.sin(a2) * h * 0.16, y2 = y1 + Math.cos(a2) * h * 0.16;
+      ctx.beginPath(); ctx.moveTo(0, -h * 0.3); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    } else if(kind === "gravity"){
+      const pts = [[-w * 0.18, -h * 0.12], [w * 0.18, -h * 0.08], [0, h * 0.2]];
+      for(const pt of pts){
+        ctx.beginPath(); ctx.arc(pt[0], pt[1], 5, 0, TAU); ctx.fill();
+      }
+    } else if(kind === "kaleidoscope"){
+      for(let s = 0; s < 6; s++){
+        ctx.save(); ctx.rotate((TAU / 6) * s + angle);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(h * 0.3, h * 0.08);
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else if(kind === "confetti"){
+      for(let i = 0; i < 5; i++){
+        ctx.save();
+        ctx.translate((i - 2) * w * 0.12, ((angle * 40 + i * 20) % (h * 0.6)) - h * 0.3);
+        ctx.rotate(angle * 3 + i);
+        ctx.fillRect(-3, -5, 6, 10);
+        ctx.restore();
+      }
+    } else if(kind === "ripple"){
+      for(let k = 0; k < 3; k++){
+        const rr = (angle * 30 + k * 20) % (h * 0.35);
+        ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.stroke();
+      }
+    } else if(kind === "fireworks"){
+      const burstR = h * 0.2 * (0.3 + 0.7 * Math.abs(Math.sin(angle * 2)));
+      for(let i = 0; i < 10; i++){
+        const a = i * TAU / 10;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * burstR, Math.sin(a) * burstR); ctx.stroke();
+      }
+    } else if(kind === "lightning"){
+      ctx.beginPath(); ctx.moveTo(-w * 0.1, -h * 0.3);
+      ctx.lineTo(w * 0.05, -h * 0.1); ctx.lineTo(-w * 0.05, 0.02 * h);
+      ctx.lineTo(w * 0.08, h * 0.15); ctx.lineTo(0, h * 0.3);
+      ctx.stroke();
+    } else if(kind === "meteor"){
+      for(let i = 0; i < 3; i++){
+        const off = ((angle * 60 + i * 40) % (w * 0.8)) - w * 0.4;
+        ctx.beginPath(); ctx.moveTo(off, -h * 0.3); ctx.lineTo(off - h * 0.25, h * 0.1); ctx.stroke();
+      }
+    } else if(kind === "helix"){
+      ctx.beginPath();
+      for(let y = -h * 0.3; y < h * 0.3; y += 4){
+        const x = Math.sin(y * 0.05 + angle * 3) * w * 0.15;
+        if(y === -h * 0.3) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.beginPath();
+      for(let y = -h * 0.3; y < h * 0.3; y += 4){
+        const x = Math.sin(y * 0.05 + angle * 3 + Math.PI) * w * 0.15;
+        if(y === -h * 0.3) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    } else if(kind === "starfield"){
+      for(let i = 0; i < 8; i++){
+        const a = i * TAU / 8 + angle;
+        const r1 = h * 0.05, r2 = h * 0.25;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2); ctx.stroke();
+      }
+    } else if(kind === "breakout"){
+      for(let row = 0; row < 3; row++){
+        for(let col = -2; col <= 2; col++){
+          ctx.fillRect(col * (w * 0.11) - 10, -h * 0.28 + row * (h * 0.08), 18, 8);
+        }
+      }
+    } else if(kind === "bubbles"){
+      for(let i = 0; i < 4; i++){
+        const y = h * 0.25 - ((angle * 40 + i * 25) % (h * 0.6));
+        ctx.beginPath(); ctx.arc((i - 1.5) * w * 0.1, y, 6, 0, TAU); ctx.stroke();
+      }
+    } else if(kind === "spirograph"){
+      ctx.beginPath();
+      for(let a = 0; a < TAU * 3; a += 0.2){
+        const x = Math.cos(a) * h * 0.12 + Math.cos(a * 2.5 + angle) * h * 0.08;
+        const y = Math.sin(a) * h * 0.12 + Math.sin(a * 2.5 + angle) * h * 0.08;
+        if(a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    } else if(kind === "wavebars"){
+      for(let i = 0; i < 12; i++){
+        const a = (i / 12) * TAU;
+        const len = h * 0.1 + Math.abs(Math.sin(angle * 3 + i)) * h * 0.16;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * h * 0.08, Math.sin(a) * h * 0.08);
+        ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+        ctx.stroke();
+      }
+    } else if(kind === "tunnel"){
+      for(let k = 1; k <= 3; k++){
+        const s = h * 0.1 * k * (0.5 + 0.5 * Math.sin(angle + k));
+        ctx.strokeRect(-s, -s, s * 2, s * 2);
+      }
+    } else if(kind === "countdown"){
+      ctx.beginPath(); ctx.arc(0, 0, h * 0.26, 0, TAU); ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.font = "bold 20px 'Orbitron', sans-serif";
+      ctx.fillText(Math.max(0, 9 - Math.floor(angle * 3) % 10), 0, 8);
+      ctx.textAlign = "left";
+    } else if(kind === "fuseline"){
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.3, -h * 0.1); ctx.lineTo(-w * 0.05, h * 0.15);
+      ctx.lineTo(w * 0.15, -h * 0.05); ctx.lineTo(w * 0.32, h * 0.12);
+      ctx.stroke();
+    } else if(kind === "meter"){
+      ctx.beginPath(); ctx.arc(0, 0, h * 0.24, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(0, 0, h * 0.24, -Math.PI / 2, -Math.PI / 2 + (angle * 0.6) % TAU); ctx.stroke();
+    } else if(kind === "domino"){
+      for(let i = 0; i < 5; i++){
+        ctx.save();
+        ctx.translate(-w * 0.28 + i * w * 0.14, h * 0.12);
+        ctx.rotate(Math.max(0, Math.min(1.1, angle * 2 - i * 0.5)));
+        ctx.fillRect(-4, -h * 0.22, 8, h * 0.22);
+        ctx.restore();
+      }
+    } else if(kind === "blackhole"){
+      ctx.beginPath(); ctx.arc(0, 0, 10 + Math.sin(angle * 2) * 4, 0, TAU); ctx.fill();
+      for(let i = 0; i < 4; i++){
+        const a = i * (TAU / 4) + angle * 2;
+        ctx.beginPath(); ctx.arc(Math.cos(a) * h * 0.22, Math.sin(a) * h * 0.22, 3, 0, TAU); ctx.fill();
+      }
+    } else if(kind === "valve"){
+      ctx.strokeRect(-h * 0.2, -h * 0.14, h * 0.4, h * 0.28);
+    } else if(kind === "tower"){
+      for(let i = 0; i < 4; i++) ctx.fillRect(-h * 0.1, h * 0.2 - i * h * 0.1, h * 0.2, h * 0.08);
+    } else if(kind === "watertank"){
+      ctx.strokeRect(-h * 0.16, -h * 0.24, h * 0.32, h * 0.48);
+      const lvl = (Math.sin(angle) + 1) / 2;
+      ctx.fillRect(-h * 0.16, h * 0.24 - lvl * h * 0.44, h * 0.32, lvl * h * 0.44);
+    } else if(kind === "orbitdecay"){
+      ctx.beginPath(); ctx.arc(0, 0, h * 0.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, h * 0.22, 0, TAU); ctx.stroke();
+      const rr = h * 0.22 * (1 - (angle * 0.3) % 1);
+      ctx.beginPath(); ctx.arc(Math.cos(angle * 4) * rr, Math.sin(angle * 4) * rr, 3, 0, TAU); ctx.fill();
+    } else if(kind === "defuse"){
+      for(let i = 0; i < 5; i++){
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.2, -h * 0.15 + i * h * 0.08); ctx.lineTo(w * 0.2, -h * 0.15 + i * h * 0.08);
+        ctx.stroke();
+      }
+    } else if(kind === "volcano"){
+      ctx.beginPath(); ctx.moveTo(-h * 0.2, h * 0.2); ctx.lineTo(0, -h * 0.2); ctx.lineTo(h * 0.2, h * 0.2);
+      ctx.closePath(); ctx.stroke();
+    } else if(kind === "comet"){
+      ctx.beginPath(); ctx.arc(Math.sin(angle) * w * 0.2, Math.cos(angle) * h * 0.1, 5, 0, TAU); ctx.fill();
+    } else if(kind === "balloon"){
+      const rr = 6 + Math.abs(Math.sin(angle * 1.5)) * h * 0.16;
+      ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill();
+    } else if(kind === "hourglass"){
+      ctx.beginPath();
+      ctx.moveTo(-h * 0.12, -h * 0.22); ctx.lineTo(h * 0.12, -h * 0.22); ctx.lineTo(0, 0);
+      ctx.lineTo(h * 0.12, h * 0.22); ctx.lineTo(-h * 0.12, h * 0.22); ctx.lineTo(0, 0);
+      ctx.closePath(); ctx.stroke();
+    } else if(kind === "reactor"){
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, TAU); ctx.fill();
+      for(let i = 0; i < 3; i++){
+        const a = i * (TAU / 3) + angle * 2;
+        ctx.beginPath(); ctx.arc(Math.cos(a) * h * 0.2, Math.sin(a) * h * 0.2, 3, 0, TAU); ctx.fill();
+      }
+    } else if(kind === "zipper"){
+      for(let i = -3; i <= 3; i++){
+        ctx.fillRect(i * w * 0.08 - 2, -8 - (i % 2 === 0 ? 4 : 0), 4, 10);
+        ctx.fillRect(i * w * 0.08 - 2, 8 + (i % 2 === 0 ? 4 : 0) - 10, 4, 10);
+      }
+    }
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    for(const d of dots){
+      d.x += d.vx; d.y += d.vy;
+      if(d.x < 10 || d.x > w - 10) d.vx *= -1;
+      if(d.y < 10 || d.y > h - 10) d.vy *= -1;
+      ctx.beginPath(); ctx.arc(d.x, d.y, 4, 0, TAU);
+      ctx.fillStyle = accent;
+      ctx.shadowColor = accent; ctx.shadowBlur = 10;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    if(running) rafHandle = requestAnimationFrame(frame);
+  }
+
+  let running = false, rafHandle = null;
+  function start(){ if(running) return; running = true; rafHandle = requestAnimationFrame(frame); }
+  function stop(){ running = false; if(rafHandle) cancelAnimationFrame(rafHandle); }
+
+  if("IntersectionObserver" in window){
+    const observer = new IntersectionObserver((entries) => {
+      for(const entry of entries){
+        if(entry.isIntersecting) start(); else stop();
+      }
+    }, { threshold: 0.05 });
+    observer.observe(canvas);
+  } else {
+    start();
+  }
+}
+
+/* ---------------- app wiring ---------------- */
+
+const grid = document.getElementById("conceptGrid");
+CONCEPTS.forEach(c => {
+  const card = document.createElement("button");
+  card.className = "card";
+  card.style.setProperty("--accent", c.accent);
+  card.innerHTML =
+    '<canvas class="preview" width="280" height="130"></canvas>' +
+    '<div class="card-body"><h2>' + c.name + "</h2><p>" + c.desc + "</p></div>";
+  card.addEventListener("click", () => {
+    audioEngine.ensureCtx();
+    launch(c.id);
+  });
+  grid.appendChild(card);
+  startPreview(card.querySelector("canvas"), c.kind, c.accent);
+});
+
+const homeScreen = document.getElementById("homeScreen");
+const simScreen = document.getElementById("simScreen");
+const canvasWrap = document.getElementById("canvasWrap");
+const mainCanvas = document.getElementById("mainCanvas");
+const simTitle = document.getElementById("simTitle");
+const speedSlider = document.getElementById("speedSlider");
+const speedVal = document.getElementById("speedVal");
+const sfxSlider = document.getElementById("sfxSlider");
+const musicSlider = document.getElementById("musicSlider");
+const controlsBtn = document.getElementById("controlsBtn");
+const controlsPanel = document.getElementById("controlsPanel");
+const playPauseBtn = document.getElementById("playPauseBtn");
+const musicName = document.getElementById("musicName");
+const recordBtn = document.getElementById("recordBtn");
+const recordIndicator = document.getElementById("recordIndicator");
+const aspectSelect = document.getElementById("aspectSelect");
+const qualitySelect = document.getElementById("qualitySelect");
+const resolutionInfo = document.getElementById("resolutionInfo");
+const soundPresetSelect = document.getElementById("soundPresetSelect");
+const uploadHitSoundBtn = document.getElementById("uploadHitSoundBtn");
+const clearHitSoundBtn = document.getElementById("clearHitSoundBtn");
+const hitSoundFile = document.getElementById("hitSoundFile");
+const hitSoundName = document.getElementById("hitSoundName");
+
+let activeSim = null, rafId = null, lastTs = 0, activeConceptName = "recording";
+
+const ASPECTS = {
+  "fill": null,
+  "9:16": 9 / 16,
+  "4:5": 4 / 5,
+  "1:1": 1,
+  "16:9": 16 / 9,
+  "3:4": 3 / 4
+};
+const QUALITIES = { "480": 854, "720": 1280, "1080": 1920 };
+
+function getRatio(){
+  const preset = ASPECTS[aspectSelect.value];
+  if(preset) return preset;
+  const rect = canvasWrap.getBoundingClientRect();
+  return rect.width / Math.max(1, rect.height);
+}
+
+function applyCanvasSize(){
+  const ratio = getRatio();
+  const longSide = QUALITIES[qualitySelect.value] || 1280;
+  let w, h;
+  if(ratio <= 1){ h = longSide; w = Math.round(h * ratio); }
+  else { w = longSide; h = Math.round(w / ratio); }
+  mainCanvas.width = w;
+  mainCanvas.height = h;
+  rescaleDisplay();
+  resolutionInfo.textContent = `${w} × ${h}px`;
+}
+
+function rescaleDisplay(){
+  const rect = canvasWrap.getBoundingClientRect();
+  if(rect.width === 0 || rect.height === 0) return;
+  const scale = Math.min(rect.width / mainCanvas.width, rect.height / mainCanvas.height);
+  mainCanvas.style.width = Math.round(mainCanvas.width * scale) + "px";
+  mainCanvas.style.height = Math.round(mainCanvas.height * scale) + "px";
+}
+
+function handleResize(){
+  if(simScreen.classList.contains("hidden")) return;
+  if(aspectSelect.value === "fill"){
+    applyCanvasSize();
+    if(activeSim && activeSim.reset) activeSim.reset();
+  } else {
+    rescaleDisplay();
+  }
+}
+window.addEventListener("resize", handleResize);
+
+function onFormatChange(){
+  applyCanvasSize();
+  if(activeSim && activeSim.reset) activeSim.reset();
+}
+aspectSelect.addEventListener("change", onFormatChange);
+qualitySelect.addEventListener("change", onFormatChange);
+
+function launch(id){
+  const concept = CONCEPTS.find(c => c.id === id);
+  activeConceptName = concept.name;
+  simTitle.textContent = concept.name.toUpperCase();
+  homeScreen.classList.add("hidden");
+  simScreen.classList.remove("hidden");
+  controlsPanel.classList.add("hidden");
+  applyCanvasSize();
+  activeSim = concept.create(mainCanvas, { onCollide: (i, s) => audioEngine.playHit(i, s) });
+  lastTs = performance.now();
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function loop(ts){
+  const dt = Math.min(0.033, (ts - lastTs) / 1000);
+  lastTs = ts;
+  const speed = parseFloat(speedSlider.value);
+  activeSim.update(dt * speed);
+  activeSim.draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  if(mediaRecorder && mediaRecorder.state === "recording") stopRecording();
+  cancelAnimationFrame(rafId);
+  activeSim = null;
+  simScreen.classList.add("hidden");
+  homeScreen.classList.remove("hidden");
+});
+
+controlsBtn.addEventListener("click", () => controlsPanel.classList.toggle("hidden"));
+
+speedSlider.addEventListener("input", () => {
+  speedVal.textContent = parseFloat(speedSlider.value).toFixed(2) + "x";
+});
+sfxSlider.addEventListener("input", () => audioEngine.setSfxVolume(sfxSlider.value / 100));
+musicSlider.addEventListener("input", () => audioEngine.setMusicVolume(musicSlider.value / 100));
+
+document.getElementById("uploadMusicBtn").addEventListener("click", () => {
+  audioEngine.ensureCtx();
+  document.getElementById("musicFile").click();
+});
+document.getElementById("musicFile").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(file){
+    audioEngine.loadMusic(file);
+    musicName.textContent = file.name;
+    playPauseBtn.textContent = "Pause";
+  }
+});
+playPauseBtn.addEventListener("click", () => {
+  audioEngine.ensureCtx();
+  playPauseBtn.textContent = audioEngine.toggleMusic();
+});
+
+soundPresetSelect.addEventListener("change", () => {
+  audioEngine.ensureCtx();
+  audioEngine.hitPreset = soundPresetSelect.value;
+  const label = soundPresetSelect.options[soundPresetSelect.selectedIndex].text;
+  hitSoundName.textContent = soundPresetSelect.value === "custom" ? "Using custom: " + label : "Using built-in: " + label;
+  audioEngine.playHit(1, 0);
+});
+uploadHitSoundBtn.addEventListener("click", () => {
+  audioEngine.ensureCtx();
+  hitSoundFile.click();
+});
+hitSoundFile.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  audioEngine.loadCustomHitSound(file).then(() => {
+    let customOpt = soundPresetSelect.querySelector('option[value="custom"]');
+    if(!customOpt){
+      customOpt = document.createElement("option");
+      customOpt.value = "custom";
+      customOpt.textContent = "Custom upload";
+      soundPresetSelect.appendChild(customOpt);
+    }
+    soundPresetSelect.value = "custom";
+    hitSoundName.textContent = "Using custom: " + file.name;
+    audioEngine.playHit(1, 0);
+  }).catch(() => {
+    hitSoundName.textContent = "Couldn't load that file — try a short audio clip.";
+  });
+});
+clearHitSoundBtn.addEventListener("click", () => {
+  audioEngine.customBuffer = null;
+  const customOpt = soundPresetSelect.querySelector('option[value="custom"]');
+  if(customOpt) customOpt.remove();
+  soundPresetSelect.value = "chime";
+  audioEngine.hitPreset = "chime";
+  hitSoundName.textContent = "Using built-in: Arcade Chime";
+});
+
+/* ---------------- screen recording ---------------- */
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordStartTime = 0;
+let recordTimerInterval = null;
+
+const recordingSupported = !!(window.MediaRecorder && mainCanvas.captureStream);
+if(!recordingSupported){
+  recordBtn.disabled = true;
+  recordBtn.title = "Screen recording isn't supported in this browser";
+}
+
+function pickMimeType(){
+  const candidates = [
+    "video/mp4;codecs=avc1",
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm"
+  ];
+  for(const type of candidates){
+    if(MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return "";
+}
+
+function startRecording(){
+  audioEngine.ensureCtx();
+  const videoStream = mainCanvas.captureStream(30);
+  const audioTracks = audioEngine.recordDest ? audioEngine.recordDest.stream.getAudioTracks() : [];
+  const combined = new MediaStream([...videoStream.getVideoTracks(), ...audioTracks]);
+  const mimeType = pickMimeType();
+  const qualityId = qualitySelect.value;
+  const videoBitsPerSecond = qualityId === "1080" ? 12000000 : qualityId === "720" ? 7000000 : 3500000;
+  const options = { videoBitsPerSecond, audioBitsPerSecond: 128000 };
+  if(mimeType) options.mimeType = mimeType;
+
+  recordedChunks = [];
+  try{
+    mediaRecorder = new MediaRecorder(combined, options);
+  }catch(e){
+    mediaRecorder = new MediaRecorder(combined);
+  }
+  mediaRecorder.ondataavailable = (e) => { if(e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = saveRecording;
+  mediaRecorder.start();
+
+  recordStartTime = performance.now();
+  recordBtn.textContent = "\u25A0";
+  recordBtn.classList.add("recording");
+  recordIndicator.classList.remove("hidden");
+  recordTimerInterval = setInterval(updateRecordTimer, 250);
+}
+
+function updateRecordTimer(){
+  const secs = Math.floor((performance.now() - recordStartTime) / 1000);
+  const m = String(Math.floor(secs / 60)).padStart(2, "0");
+  const s = String(secs % 60).padStart(2, "0");
+  recordIndicator.textContent = `\u25CF REC ${m}:${s}`;
+}
+
+function stopRecording(){
+  if(mediaRecorder && mediaRecorder.state !== "inactive"){
+    mediaRecorder.stop();
+  }
+  clearInterval(recordTimerInterval);
+  recordIndicator.classList.add("hidden");
+  recordBtn.textContent = "\u23FA";
+  recordBtn.classList.remove("recording");
+}
+
+function saveRecording(){
+  const type = (mediaRecorder && mediaRecorder.mimeType) || "video/webm";
+  const blob = new Blob(recordedChunks, { type });
+  const ext = type.indexOf("mp4") !== -1 ? "mp4" : "webm";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safeName = activeConceptName.toLowerCase().replace(/\s+/g, "-");
+  a.href = url;
+  a.download = `${safeName}-${Date.now()}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+recordBtn.addEventListener("click", () => {
+  if(!recordingSupported) return;
+  if(mediaRecorder && mediaRecorder.state === "recording"){
+    stopRecording();
+  } else {
+    startRecording();
+  }
+});
+
+</script>
+</body>
+</html>
